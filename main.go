@@ -12,10 +12,11 @@ import (
 var pluginConfig = &internal.PluginConfig{}
 
 // Main entry to WoST protocol adapter for owserver-v2
+// This setup the configuration from file and commandline parameters and launches the service
 func main() {
 	gatewayConfig, err := config.SetupConfig("", internal.PluginID, pluginConfig)
 
-	svc := internal.NewOWServer()
+	svc := internal.WostOWServer{}
 	err = svc.Start(gatewayConfig, pluginConfig)
 	if err != nil {
 		logrus.Errorf("Logger: Failed to start")

@@ -40,17 +40,11 @@ func (svc *WostOWServer) Start(gwConfig *config.GatewayConfig, pluginConfig *Plu
 	svc.edsAPI = NewEdsAPI(pluginConfig.EdsAddress, pluginConfig.LoginName, pluginConfig.Password)
 	svc.messenger, err = messaging.StartGatewayMessenger(PluginID, gwConfig)
 
-	logrus.Infof("WostOWServer.Start complete")
+	logrus.Infof("Service OWServer startup completed")
 	return err
 }
 
 // Stop the service
 func (svc *WostOWServer) Stop() {
-	logrus.Info("WostOWServer.Stop: Stopping service")
-}
-
-// NewOWServer creates a new service instance
-func NewOWServer() *WostOWServer {
-	svc := &WostOWServer{}
-	return svc
+	logrus.Info("Stopping service OWServer")
 }

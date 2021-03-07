@@ -43,7 +43,7 @@ func TestStartStop(t *testing.T) {
 	server, err := smbserver.StartSmbServer(gwConfig)
 	require.NoError(t, err)
 
-	svc := internal.NewOWServer()
+	svc := internal.WostOWServer{}
 	err = svc.Start(gwConfig, pluginConfig)
 	assert.NoError(t, err)
 	svc.Stop()
@@ -60,7 +60,7 @@ func TestPollOnce(t *testing.T) {
 	// if !assert.NoError(t, err) {
 	// 	return
 	// }
-	svc := internal.NewOWServer()
+	svc := internal.WostOWServer{}
 	// svc.Start(gwConfig, pluginConfig)
 	err := svc.Poll()
 	_ = err
@@ -73,7 +73,7 @@ func TestPollInvalidAddress(t *testing.T) {
 	setup()
 	// error cases - don't panic when polling without address
 	os.Remove("../test/onewire-nodes.json")
-	svc := internal.NewOWServer()
+	svc := internal.WostOWServer{}
 	badConfig := *pluginConfig
 	badConfig.EdsAddress = "http://invalidAddress/"
 	// err := svc.Start(gwConfig, &badConfig)

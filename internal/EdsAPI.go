@@ -57,7 +57,7 @@ func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
 		filename := edsAPI.address[7:]
 		buffer, err := ioutil.ReadFile(filename)
 		if err != nil {
-			logrus.Errorf("ReadEds: Unable to read EDS file from %s: %v", filename, err)
+			logrus.Errorf("Unable to read EDS file from %s: %v", filename, err)
 			return nil, err
 		}
 		err = xml.Unmarshal(buffer, &rootNode)
@@ -72,7 +72,7 @@ func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
 
 	// resp, err := http.Get(edsURL)
 	if err != nil {
-		logrus.Errorf("ReadEds: Unable to read EDS gateway from %s: %v", edsURL, err)
+		logrus.Errorf("Unable to read EDS gateway from %s: %v", edsURL, err)
 		return nil, err
 	}
 	// Decode the EDS response into XML
