@@ -25,7 +25,6 @@ func TestReadEdsFromInvalidFile(t *testing.T) {
 	rootNode, err := edsAPI.ReadEds()
 	assert.Error(t, err)
 	assert.Nil(t, rootNode, "Did not expect root node")
-
 }
 
 // Read EDS device and check if more than 1 node is returned. A minimum of 1 is expected if the
@@ -40,7 +39,6 @@ func TestReadEdsFromGateway(t *testing.T) {
 	assert.NoError(t, err, "Failed reading EDS gateway")
 	require.NotNil(t, rootNode, "Expected root node")
 	assert.GreaterOrEqual(t, len(rootNode.Nodes), 3, "Expected at least 3 nodes")
-
 }
 func TestReadEdsFromInvalidAddress(t *testing.T) {
 
