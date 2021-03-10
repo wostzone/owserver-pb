@@ -114,12 +114,12 @@ func (app *OnewireApp) updateDevice(deviceOWNode *XMLNode) {
 	}
 }
 
-// Update the one-wire gateway device status
+// Update the one-wire hub device status
 // gwParams are the parameters as per EDS XML output
-// Returns the gateway device node
-func (app *OnewireApp) updateGateway(gwParams map[string]string) {
+// Returns the hub device node
+func (app *OnewireApp) updateHub(gwParams map[string]string) {
 	pub := app.pub
-	pub.UpdateNodeAttr(app.GatewayHWID(), map[types.NodeAttr]string{
+	pub.UpdateNodeAttr(app.HubHWID(), map[types.NodeAttr]string{
 		types.NodeAttrMAC:          gwParams["MACAddress"],
 		types.NodeAttrHostname:     gwParams["HostName"],
 		types.NodeAttrManufacturer: "Embedded Data Systems (EDS)",
@@ -127,7 +127,7 @@ func (app *OnewireApp) updateGateway(gwParams map[string]string) {
 	})
 
 	// OWServer ENet specific attributes. These could be sensors if there is a need
-	pub.UpdateNodeStatus(app.GatewayHWID(), map[types.NodeStatus]string{
+	pub.UpdateNodeStatus(app.HubHWID(), map[types.NodeStatus]string{
 		"DevicesConnected":         gwParams["DevicesConnected"],
 		"DevicesConnectedChannel1": gwParams["DevicesConnectedChannel1"],
 		"DevicesConnectedChannel2": gwParams["DevicesConnectedChannel2"],

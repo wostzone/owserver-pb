@@ -12,17 +12,17 @@ func UpdateEdsError(err error) {
 
 }
 
-// UpdateEdsGateway updates the TD of the EDS gateway
-func UpdateEdsGateway(gwParam map[string]string) {
+// UpdateEdsHub updates the TD of the EDS hub
+func UpdateEdsHub(gwParam map[string]string) {
 	thing := td.GetThing(EdsThingID)
 	if thing == nil {
-		thing = td.NewThing(EdsThingID, "EDS OWServer 1-wire Gateway")
+		thing = td.NewThing(EdsThingID, "EDS OWServer 1-wire Hub")
 	}
 	for prop, val := range gwParam {
 		thing.SetProperty(prop, val)
 	}
-	// td := NewTD(edsID, "EDS OWServer 1-wire Gateway")
-	// td.AddProperty(NewStringProperty("address", eds.address, "EDS Gateway IP address"))
+	// td := NewTD(edsID, "EDS OWServer 1-wire Hub")
+	// td.AddProperty(NewStringProperty("address", eds.address, "EDS Hub IP address"))
 
 }
 
@@ -30,7 +30,7 @@ func UpdateEdsGateway(gwParam map[string]string) {
 func UpdateEdsNode(nodeParam XMLNode) {
 }
 
-// Poll the EDS gateway for updates to nodes and sensors
+// Poll the EDS hub for updates to nodes and sensors
 func Poll(eds *EdsAPI) {
 	rootNode, err := eds.ReadEds()
 	if err != nil {
@@ -43,11 +43,11 @@ func Poll(eds *EdsAPI) {
 
 	// clear any errors
 	UpdateEdsError(err)
-	UpdateEdsGateway(gwParams)
+	UpdateEdsHub(gwParams)
 
-	// (re)discover the nodes on the gateway
-	// td.UpdateGateway(gwParams)
-	// 	app.updateGateway(gwParams)
+	// (re)discover the nodes on the hub
+	// td.UpdateHub(gwParams)
+	// 	app.updateHub(gwParams)
 	// 	pub.UpdateNodeStatus(gwID, map[types.NodeStatus]string{
 	// 		types.NodeStatusRunState:    string(types.NodeRunStateReady),
 	// 		types.NodeStatusLastError:   "",

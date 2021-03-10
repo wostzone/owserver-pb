@@ -29,20 +29,20 @@ func TestReadEdsFromInvalidFile(t *testing.T) {
 
 // Read EDS device and check if more than 1 node is returned. A minimum of 1 is expected if the
 // device is online with an additional node for each connected node.
-// NOTE: This requires a live gateway on the 'edsAddress'
-func TestReadEdsFromGateway(t *testing.T) {
+// NOTE: This requires a live hub on the 'edsAddress'
+func TestReadEdsFromHub(t *testing.T) {
 
 	edsAddress := "10.3.3.33"
 	edsAPI := internal.NewEdsAPI(edsAddress, "", "")
 	rootNode, err := edsAPI.ReadEds()
 
-	assert.NoError(t, err, "Failed reading EDS gateway")
+	assert.NoError(t, err, "Failed reading EDS hub")
 	require.NotNil(t, rootNode, "Expected root node")
 	assert.GreaterOrEqual(t, len(rootNode.Nodes), 3, "Expected at least 3 nodes")
 }
 func TestReadEdsFromInvalidAddress(t *testing.T) {
 
-	// error case - bad gateway
+	// error case - bad hub
 	// error case, unknown file
 	edsAddress := "doesnoteexist"
 	edsAPI := internal.NewEdsAPI(edsAddress, "", "")
@@ -62,8 +62,8 @@ func TestParseNodeFile(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rootNode)
 
-	// The test file has gateway parameters and 3 connected nodes
+	// The test file has hub parameters and 3 connected nodes
 	gwParams, deviceNodes := edsAPI.ParseNodeParams(rootNode)
-	assert.Len(t, gwParams, 17, "Expected multiple gateway parameters")
-	assert.Lenf(t, deviceNodes, 3, "Expected 3 gateway nodes")
+	assert.Len(t, gwParams, 17, "Expected multiple hub parameters")
+	assert.Lenf(t, deviceNodes, 3, "Expected 3 hub nodes")
 }

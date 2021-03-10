@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/wostzone/gateway/pkg/config"
-	"github.com/wostzone/gateway/pkg/smbserver"
+	"github.com/wostzone/hub/pkg/config"
+	"github.com/wostzone/hub/pkg/smbserver"
 	"github.com/wostzone/owserver/internal"
 )
 
@@ -20,7 +20,7 @@ var homeFolder string
 const pluginID = "owserver-test"
 
 var pluginConfig *internal.PluginConfig = &internal.PluginConfig{} // use defaults
-var gwConfig *config.GatewayConfig
+var gwConfig *config.HubConfig
 var setupOnce = false
 
 // Use the project app folder during testing

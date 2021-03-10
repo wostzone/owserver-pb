@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/gateway/pkg/config"
-	"github.com/wostzone/gateway/pkg/messaging"
+	"github.com/wostzone/hub/pkg/config"
+	"github.com/wostzone/hub/pkg/messaging"
 )
 
 // PluginID is the default ID of the WoST Logger plugin
@@ -18,27 +18,27 @@ type PluginConfig struct {
 	Password   string `yaml:"password"`
 }
 
-// WostOWServer is a  gateway protocol adapter plugin for capturing 1-wire OWServer V2 Data
+// WostOWServer is a  hub protocol adapter plugin for capturing 1-wire OWServer V2 Data
 type WostOWServer struct {
-	config    PluginConfig          // options for accessing EDS OWServer
-	edsAPI    *EdsAPI               // EDS device access
-	gwConfig  *config.GatewayConfig // gateway based configuration
-	messenger messaging.IGatewayMessenger
+	config    PluginConfig      // options for accessing EDS OWServer
+	edsAPI    *EdsAPI           // EDS device access
+	gwConfig  *config.HubConfig // hub based configuration
+	messenger messaging.IHubMessenger
 }
 
-// Poll the OWServer gateway for device updates
+// Poll the OWServer hub for device updates
 func (svc *WostOWServer) Poll() error {
 	return errors.New("Not implemented")
 }
 
-// Start connects to the gateway internal message bus and starts polling
+// Start connects to the hub internal message bus and starts polling
 // the owserver.
-func (svc *WostOWServer) Start(gwConfig *config.GatewayConfig, pluginConfig *PluginConfig) error {
+func (svc *WostOWServer) Start(gwConfig *config.HubConfig, pluginConfig *PluginConfig) error {
 	var err error
 	svc.config = *pluginConfig
 	svc.gwConfig = gwConfig
 	svc.edsAPI = NewEdsAPI(pluginConfig.EdsAddress, pluginConfig.LoginName, pluginConfig.Password)
-	svc.messenger, err = messaging.StartGatewayMessenger(PluginID, gwConfig)
+	svc.messenger, err = messaging.StartHubMessenger(PluginID, gwConfig)
 
 	logrus.Infof("Service OWServer startup completed")
 	return err

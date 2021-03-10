@@ -50,7 +50,7 @@ func (edsAPI *EdsAPI) ParseNodeParams(xmlNode *XMLNode) (map[string]string, []XM
 	return params, subNodes
 }
 
-// ReadEds reads EDS gateway and return the result as an XML node
+// ReadEds reads EDS hub and return the result as an XML node
 // If edsAPI.address starts with file:// then read from file, otherwise from address
 func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
 	if strings.HasPrefix(edsAPI.address, "file://") {
@@ -72,7 +72,7 @@ func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
 
 	// resp, err := http.Get(edsURL)
 	if err != nil {
-		logrus.Errorf("Unable to read EDS gateway from %s: %v", edsURL, err)
+		logrus.Errorf("Unable to read EDS hub from %s: %v", edsURL, err)
 		return nil, err
 	}
 	// Decode the EDS response into XML
