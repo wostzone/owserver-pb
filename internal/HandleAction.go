@@ -6,9 +6,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// HandleSetInput handles requests to update input value
+// HandleAction handles requests to activate inputs
 // TODO: support for controlling onewire inputs
-func (app *OnewireApp) HandleSetInput(
+func (pb *OWServerPB) HandleAction(
 	input *types.InputDiscoveryMessage, sender string, value string) {
 	if input == nil {
 		logrus.Errorf("HandleSetInput: input is nil")

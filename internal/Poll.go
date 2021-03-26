@@ -1,61 +1,54 @@
 // Package internal queries the EDS for device, node and parameter information
 package internal
 
-const EdsThingID = "eds"
+import (
+	"fmt"
+	"time"
 
-// UpdateEdsError updates the TD thing error status
-//  err with error to set, nil to clear
-func UpdateEdsError(err error) {
-	thing := td.GetThing(EdsThingID)
-	if thing != nil {
-	thing.SetErrorStatus(err)
+	"github.com/sirupsen/logrus"
+	"github.com/wostzone/hubapi/pkg/td"
+)
 
-}
-
-// UpdateEdsHub updates the TD of the EDS hub
-func UpdateEdsHub(gwParam map[string]string) {
-	thing := td.GetThing(EdsThingID)
-	if thing == nil {
-		thing = td.NewThing(EdsThingID, "EDS OWServer 1-wire Hub")
+// Poll the OWServer hub for device updates
+func (pb *OWServerPB) Poll() error {
+	if pb.edsAPI == nil {
+		err := fmt.Errorf("EDS API not initialized")
+		logrus.Error(err)
+		return err
 	}
-	for prop, val := range gwParam {
-		thing.SetProperty(prop, val)
-	}
-	// td := NewTD(edsID, "EDS OWServer 1-wire Hub")
-	// td.AddProperty(NewStringProperty("address", eds.address, "EDS Hub IP address"))
 
-}
+	startTime := time.Now()
+	rootNode, err := pb.edsAPI.ReadEds()
+	endTime := time.Now()
+	latency := endTime.Sub(startTime)
 
-// UpdateEdsNode updates the TD of a 1-wire node
-func UpdateEdsNode(nodeParam XMLNode) {
-}
-
-// Poll the EDS hub for updates to nodes and sensors
-func Poll(eds *EdsAPI) {
-	rootNode, err := eds.ReadEds()
 	if err != nil {
-		// The EDS cannot be reached. Set its error status
-		UpdateEdsError(err)
-		return
+		if pb.gatewayInfo.thingTD != nil {
+			// The EDS cannot be reached. Set its error status
+			td.SetThingErrorStatus(pb.gatewayInfo.thingTD, err.Error())
+		}
+		return err
 	}
+	// td.SetThingErrorStatus(pb.gatewayTD, "")
 
-	gwParams, deviceNodes := eds.ParseNodeParams(rootNode)
+	gwParams, deviceNodes := pb.edsAPI.ParseNodeParams(rootNode)
+	// Update the EDS Gateway Thing
+	gwID, gwTD, newValues := pb.CreateGatewayTD(gwParams, latency)
 
-	// clear any errors
-	UpdateEdsError(err)
-	UpdateEdsHub(gwParams)
-
-	// (re)discover the nodes on the hub
-	// td.UpdateHub(gwParams)
-	// 	app.updateHub(gwParams)
-	// 	pub.UpdateNodeStatus(gwID, map[types.NodeStatus]string{
-	// 		types.NodeStatusRunState:    string(types.NodeRunStateReady),
-	// 		types.NodeStatusLastError:   "",
-	// 		types.NodeStatusLatencyMSec: fmt.Sprintf("%d", latency.Milliseconds()),
-	// 	})
+	pb.gatewayInfo.thingTD = gwTD
+	// TODO: Only republish TD at a given interval
+	pb.hubClient.PublishTD(gwID, gwTD)
+	pb.hubClient.PublishPropertyValues(gwID, newValues)
 
 	// (re)discover any new sensor nodes and publish when changed
 	for _, node := range deviceNodes {
-		UpdateEdsNode(&node)
+		nodeID, nodeTD := pb.CreateNodeTD(&node)
+		pb.nodeInfo[nodeID] = ThingInfo{
+			thingTD:        nodeTD,
+			propertyValues: make(map[string]string),
+		}
+		// TODO, only republish at a given interval
+		pb.hubClient.PublishTD(nodeID, nodeTD)
 	}
+	return nil
 }
