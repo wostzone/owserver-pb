@@ -51,7 +51,7 @@ func TestStartStop(t *testing.T) {
 	teardown()
 }
 
-func TestPollOnce(t *testing.T) {
+func TestPollTDs(t *testing.T) {
 	logrus.Infof("--- TestPollOnce ---")
 	setup()
 	os.Remove("../test/onewire-nodes.json")
@@ -61,13 +61,38 @@ func TestPollOnce(t *testing.T) {
 	require.NoError(t, err)
 
 	// svc.Start(gwConfig, pluginConfig)
-	err = svc.Poll()
+	tds, err := svc.PollTDs()
+	require.NoError(t, err)
+	err = svc.PublishTDs(tds)
 	assert.NoError(t, err)
 
 	time.Sleep(3 * time.Second)
 	teardown()
-
 }
+func TestPollValues(t *testing.T) {
+	logrus.Infof("--- TestPollOnce ---")
+	setup()
+	os.Remove("../test/onewire-nodes.json")
+
+	svc := internal.OWServerPB{}
+	err := svc.Start(hubConfig, pluginConfig)
+	require.NoError(t, err)
+
+	// svc.Start(gwConfig, pluginConfig)
+	tds, err := svc.PollTDs()
+	require.NoError(t, err)
+	err = svc.PublishTDs(tds)
+	assert.NoError(t, err)
+
+	values, err := svc.PollValues()
+	require.NoError(t, err)
+	err = svc.PublishValues(values)
+	assert.NoError(t, err)
+
+	time.Sleep(3 * time.Second)
+	teardown()
+}
+
 func TestPollInvalidAddress(t *testing.T) {
 	logrus.Infof("--- TestPollInvalidAddress ---")
 
@@ -78,7 +103,8 @@ func TestPollInvalidAddress(t *testing.T) {
 	badConfig := *pluginConfig
 	badConfig.EdsAddress = "http://invalidAddress/"
 	// err := svc.Start(gwConfig, &badConfig)
-	err := svc.Poll()
+	tds, err := svc.PollTDs()
+	_ = tds
 	assert.Error(t, err)
 	teardown()
 

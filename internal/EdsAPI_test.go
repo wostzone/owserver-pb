@@ -63,7 +63,6 @@ func TestParseNodeFile(t *testing.T) {
 	require.NotNil(t, rootNode)
 
 	// The test file has hub parameters and 3 connected nodes
-	gwParams, deviceNodes := edsAPI.ParseNodeParams(rootNode)
-	assert.Len(t, gwParams, 17, "Expected multiple hub parameters")
-	assert.Lenf(t, deviceNodes, 3, "Expected 3 hub nodes")
+	deviceNodes := edsAPI.ParseOneWireNodes(rootNode, 0, true)
+	assert.Lenf(t, deviceNodes, 4, "Expected 4 nodes")
 }

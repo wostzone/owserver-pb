@@ -2,8 +2,7 @@
 
 # Message bus server
 messenger:
-  #certFolder: "../certs" # Use TLS
-  certFolder: "/etc/mosquitto/certs"
+  certsFolder: "/etc/mosquitto/certs"
   address: "localhost" # hostname:port or ip:port to listen on of message bus
   port: 8883
 
