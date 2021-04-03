@@ -29,6 +29,9 @@ func (pb *OWServerPB) CreateTDFromNode(node *OneWireNode) (thingID string, thing
 		if attr.Unit != "" {
 			td.SetPropertyUnit(prop, attr.Unit)
 		}
+		if attr.Value != "" {
+			td.SetPropertyValue(prop, attr.Value)
+		}
 		td.AddTDProperty(thingTD, attrName, prop)
 	}
 
