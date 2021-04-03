@@ -24,18 +24,18 @@ var AttrVocab = map[string]string{
 // sensorTypeMap maps OWServer sensor names to IoT vocabulary
 var SensorTypeVocab = map[string]struct {
 	name     string
-	dataType api.DataType
+	dataType string
 }{
 	// "BarometricPressureHg": api.PropNameAtmosphericPressure, // unit Hg
 	"BarometricPressureMb": {name: api.PropNameAtmosphericPressure,
-		dataType: api.DataTypeNumber}, // unit Mb
-	"DewPoint":    {name: api.PropNameDewpoint, dataType: api.DataTypeNumber},
-	"HeatIndex":   {name: api.PropNameHeatIndex, dataType: api.DataTypeNumber},
-	"Humidity":    {name: api.PropNameHumidity, dataType: api.DataTypeNumber},
-	"Humidex":     {name: api.PropNameHumidex, dataType: api.DataTypeNumber},
-	"Light":       {name: api.PropNameLuminance, dataType: api.DataTypeNumber},
-	"RelayState":  {name: api.PropNameRelay, dataType: api.DataTypeBool},
-	"Temperature": {name: api.PropNameTemperature, dataType: api.DataTypeNumber},
+		dataType: api.WoTDataTypeNumber}, // unit Mb
+	"DewPoint":    {name: api.PropNameDewpoint, dataType: api.WoTDataTypeNumber},
+	"HeatIndex":   {name: api.PropNameHeatIndex, dataType: api.WoTDataTypeNumber},
+	"Humidity":    {name: api.PropNameHumidity, dataType: api.WoTDataTypeNumber},
+	"Humidex":     {name: api.PropNameHumidex, dataType: api.WoTDataTypeNumber},
+	"Light":       {name: api.PropNameLuminance, dataType: api.WoTDataTypeNumber},
+	"RelayState":  {name: api.PropNameRelay, dataType: api.WoTDataTypeBool},
+	"Temperature": {name: api.PropNameTemperature, dataType: api.WoTDataTypeNumber},
 }
 
 // unitNameMap maps OWServer unit names to IoT vocabulary

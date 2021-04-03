@@ -9,15 +9,13 @@ import (
 	"github.com/wostzone/owserver/internal"
 )
 
-var pluginConfig = &internal.PluginConfig{}
-
 // Main entry to WoST protocol adapter for owserver-v2
 // This setup the configuration from file and commandline parameters and launches the service
 func main() {
-	hubConfig, err := hubconfig.LoadCommandlineConfig("", internal.PluginID, pluginConfig)
+	svc := internal.NewOWServerPB()
+	hubConfig, err := hubconfig.LoadCommandlineConfig("", internal.PluginID, &svc.Config)
 
-	svc := internal.OWServerPB{}
-	err = svc.Start(hubConfig, pluginConfig)
+	err = svc.Start(hubConfig)
 	if err != nil {
 		logrus.Errorf("Logger: Failed to start")
 		os.Exit(1)

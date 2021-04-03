@@ -24,10 +24,10 @@ func (pb *OWServerPB) CreateTDFromNode(node *OneWireNode) (thingID string, thing
 
 	// Map node attribute to Thing properties
 	for attrName, attr := range node.Attr {
-		prop := td.CreateTDProperty(attrName, "", attr.PropertyType)
-		td.SetTDPropertyDataTypeString(prop, 0, 0)
+		prop := td.CreateProperty(attrName, "", attr.PropertyType)
+		td.SetPropertyDataTypeString(prop, 0, 0)
 		if attr.Unit != "" {
-			td.SetTDPropertyUnit(prop, attr.Unit)
+			td.SetPropertyUnit(prop, attr.Unit)
 		}
 		td.AddTDProperty(thingTD, attrName, prop)
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/wostzone/hubapi/api"
 	"github.com/wostzone/hubapi/pkg/hubclient"
 	"github.com/wostzone/hubapi/pkg/hubconfig"
+	"github.com/wostzone/hubapi/pkg/td"
 )
 
 // PluginID is the default ID of the WoST Logger plugin
@@ -15,28 +16,42 @@ const PluginID = "owserver"
 
 // PluginConfig with owserver plugin configuration
 type PluginConfig struct {
-	EdsAddress       string `yaml:"owserverAddress"`
-	LoginName        string `yaml:"loginName"`
-	Password         string `yaml:"password"`
-	TDIntervalSec    int    `yaml:"tdInterval"`    // interval of republishing the full TD, default is 1 hours
-	ValueIntervalSec int    `yaml:"valueInterval"` // interval of republishing the Thing property values, default is 60 seconds
+	ClientID      string `yaml:"clientID"` // custom unique client ID, default is the pluginID
+	EdsAddress    string `yaml:"owserverAddress"`
+	LoginName     string `yaml:"loginName"`
+	Password      string `yaml:"password"`
+	PublishTD     bool   `yaml:"publishTD"`     // publish the TD of this service
+	TDInterval    int    `yaml:"tdInterval"`    // interval of republishing the full TD, default is 1 hours
+	ValueInterval int    `yaml:"valueInterval"` // interval of republishing the Thing property values, default is 60 seconds
 }
-
-// ThingInfo contains the last published property values
-// type ThingInfo struct {
-// 	nodeID         string            // node to thing ID mapping
-// 	thingID        string            // provided by pollTD
-// 	propertyValues map[string]string // provided by pollValues
-// }
 
 // OWServerPB is a  hub protocol binding plugin for capturing 1-wire OWServer V2 Data
 type OWServerPB struct {
-	config    PluginConfig         // options for accessing EDS OWServer
+	Config    PluginConfig         // options for accessing EDS OWServer
 	edsAPI    *EdsAPI              // EDS device access
 	hubConfig *hubconfig.HubConfig // hub based configuration
 	hubClient api.IHubClient
 	nodeInfo  map[string]*OneWireNode // map of node ID to node info and thingID
 	running   bool
+}
+
+// PublishServiceTD publishes the Thing Description of the service itself
+func (pb *OWServerPB) PublishServiceTD() {
+	if !pb.Config.PublishTD {
+		return
+	}
+	deviceType := api.DeviceTypeService
+	thingID := td.CreatePublisherThingID(pb.hubConfig.Zone, "hub", pb.Config.ClientID, deviceType)
+	logrus.Infof("Publishing this service TD %s", thingID)
+	thingTD := td.CreateTD(thingID, deviceType)
+	// Include the service configuration properties
+	prop := td.CreateProperty(api.PropNameAddress, "Gateway Address", api.PropertyTypeAttr)
+	td.SetPropertyDataTypeString(prop, 0, 0)
+	//
+	td.AddTDProperty(thingTD, api.PropNameAddress, prop)
+	td.SetThingDescription(thingTD, "EDS OWServer-V2 Protocol binding",
+		"This service publishes information on The EDS OWServer 1-wire gateway and its connected sensors")
+	pb.hubClient.PublishTD(thingID, thingTD)
 }
 
 // PublishThingsTD publishes the TD of Things
@@ -75,7 +90,7 @@ func (pb *OWServerPB) heartbeat() {
 			if err == nil {
 				pb.PublishTDs(tds)
 			}
-			tdCountDown = pb.config.TDIntervalSec
+			tdCountDown = pb.Config.TDInterval
 		}
 		valueCountDown--
 		if valueCountDown <= 0 {
@@ -83,7 +98,7 @@ func (pb *OWServerPB) heartbeat() {
 			if err == nil {
 				pb.PublishValues(values)
 			}
-			valueCountDown = pb.config.ValueIntervalSec
+			valueCountDown = pb.Config.ValueInterval
 		}
 		time.Sleep(time.Second)
 	}
@@ -91,18 +106,20 @@ func (pb *OWServerPB) heartbeat() {
 
 // Start connects to the hub internal message bus and starts polling
 // the owserver.
-func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig, pluginConfig *PluginConfig) error {
+func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig) error {
 	var err error
-	pb.config = *pluginConfig
 	pb.hubConfig = hubConfig
 	pb.nodeInfo = make(map[string]*OneWireNode, 0) // map of node thing info objects by thing ID
-	pb.edsAPI = NewEdsAPI(pluginConfig.EdsAddress, pluginConfig.LoginName, pluginConfig.Password)
+	pb.edsAPI = NewEdsAPI(pb.Config.EdsAddress, pb.Config.LoginName, pb.Config.Password)
 	pb.hubClient = hubclient.NewPluginClient(PluginID, hubConfig)
 	err = pb.hubClient.Start(false)
 	if err != nil {
 		logrus.Errorf("Protocol Binding for OWServer startup failed")
 		return err
 	}
+	// publish the logger service thing
+	pb.PublishServiceTD()
+
 	pb.running = true
 	go pb.heartbeat()
 	logrus.Infof("Service OWServer startup completed")
@@ -113,4 +130,16 @@ func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig, pluginConfig *Plugin
 func (pb *OWServerPB) Stop() {
 	pb.running = false
 	logrus.Info("Stopping service OWServer")
+}
+
+// Create a new OWServer Protocol Binding service with default configuration
+func NewOWServerPB() *OWServerPB {
+	pb := &OWServerPB{}
+	pb.Config = PluginConfig{
+		ClientID:      PluginID,
+		PublishTD:     false,
+		TDInterval:    3600,
+		ValueInterval: 60,
+	}
+	return pb
 }

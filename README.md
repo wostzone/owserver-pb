@@ -8,13 +8,20 @@ Convert EDS OWServer 1-wire devices to WoT Things.
 
 ## Status 
 
-The status of this plugin is In Development.
+The status of this plugin is Alpha. It is functional but breaking changes must be expected.
 
-This plugin is not yet functional.
+This plugin provides basic functionality:
+1. Publish TDs for the EDS gateway and connected 1-wire devices
+2. Publish value update messages
+
+Planned:
+3. Support for configuration updates
+4. Improve conformance to WoT TD's with publishing updates and use of TD forms
+
 
 ## Audience
 
-This project is aimed at software developers, system implementors and people with a keen interest in IoT. 
+This project is aimed at software developers, system implementors and people with a keen interest in IoT that value security and interoperability.
 
 ## Dependencies
 

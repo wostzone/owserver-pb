@@ -18,46 +18,40 @@ var homeFolder string
 
 const pluginID = "owserver-test"
 
-var pluginConfig *internal.PluginConfig = &internal.PluginConfig{} // use defaults
 var hubConfig *hubconfig.HubConfig
 var setupOnce = false
 
 // --- THIS REQUIRES A RUNNING HUB OR MESSAGE BUS ---
 
 // Use the project app folder during testing
-func setup() {
-	// if setupOnce {
-	// 	return
-	// }
-	// setupOnce = true
+func setup() *internal.OWServerPB {
+	os.Remove("../test/onewire-nodes.json")
+
 	cwd, _ := os.Getwd()
 	homeFolder = path.Join(cwd, "../test")
-	// pluginConfig = &internal.PluginConfig{}
-	// // remove VSCode testing arguments
-	// os.Args = append(os.Args[0:1], strings.Split("", " ")...)
-	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, pluginID, pluginConfig)
+	svc := internal.NewOWServerPB()
+	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, pluginID, &svc.Config)
 	hubConfig.Messenger.CertsFolder = "/etc/mosquitto/certs"
+	return svc
 }
 func teardown() {
 }
 
 func TestStartStop(t *testing.T) {
 	logrus.Infof("--- TestStartStop ---")
-	setup()
-	svc := internal.OWServerPB{}
-	err := svc.Start(hubConfig, pluginConfig)
+	svc := setup()
+	err := svc.Start(hubConfig)
 	assert.NoError(t, err)
+	time.Sleep(time.Millisecond)
 	svc.Stop()
 	teardown()
 }
 
 func TestPollTDs(t *testing.T) {
 	logrus.Infof("--- TestPollOnce ---")
-	setup()
-	os.Remove("../test/onewire-nodes.json")
 
-	svc := internal.OWServerPB{}
-	err := svc.Start(hubConfig, pluginConfig)
+	svc := setup()
+	err := svc.Start(hubConfig)
 	require.NoError(t, err)
 
 	// svc.Start(gwConfig, pluginConfig)
@@ -71,11 +65,9 @@ func TestPollTDs(t *testing.T) {
 }
 func TestPollValues(t *testing.T) {
 	logrus.Infof("--- TestPollOnce ---")
-	setup()
-	os.Remove("../test/onewire-nodes.json")
+	svc := setup()
 
-	svc := internal.OWServerPB{}
-	err := svc.Start(hubConfig, pluginConfig)
+	err := svc.Start(hubConfig)
 	require.NoError(t, err)
 
 	// svc.Start(gwConfig, pluginConfig)
@@ -96,12 +88,8 @@ func TestPollValues(t *testing.T) {
 func TestPollInvalidAddress(t *testing.T) {
 	logrus.Infof("--- TestPollInvalidAddress ---")
 
-	setup()
-	// error cases - don't panic when polling without address
-	os.Remove("../test/onewire-nodes.json")
-	svc := internal.OWServerPB{}
-	badConfig := *pluginConfig
-	badConfig.EdsAddress = "http://invalidAddress/"
+	svc := setup()
+	svc.Config.EdsAddress = "http://invalidAddress/"
 	// err := svc.Start(gwConfig, &badConfig)
 	tds, err := svc.PollTDs()
 	_ = tds
