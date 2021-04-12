@@ -64,7 +64,7 @@ func TestPollTDs(t *testing.T) {
 
 	// listener should receive the TD
 	// FIXME: consumer connection port should not be hidden
-	hostPort := fmt.Sprintf("%s:%d", hubConfig.Messenger.Address, hubConfig.Messenger.Port+1)
+	hostPort := fmt.Sprintf("%s:%d", hubConfig.Messenger.Address, hubConfig.Messenger.ClientPortMqtt)
 	caCertFile := path.Join(hubConfig.CertsFolder, certsetup.CaCertFile)
 	consumer := hubclient.NewHubClient(hostPort, caCertFile, "test-client", "")
 	err = consumer.Start()

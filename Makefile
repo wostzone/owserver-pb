@@ -2,7 +2,7 @@
 DIST_FOLDER=./dist
 .DEFAULT_GOAL := help
 
-.PHONY: help
+.PHONY: 
 
 all: owserver-pb ## Build package with binary distribution and config
 
@@ -15,8 +15,8 @@ install:  ## Install the plugin into ~/bin/wost/bin and config
 	cp $(DIST_FOLDER)/arm/* ~/bin/wost/arm/
 	cp -n $(DIST_FOLDER)/config/* ~/bin/wost/config/
 
-test: FORCE ## Run tests (todo fix this)
-		go test -v ./pkg/...
+test: .PHONY ## Run tests (todo fix this)
+		go test -v ./...
 
 clean: ## Clean distribution files
 	$(GOCLEAN)
