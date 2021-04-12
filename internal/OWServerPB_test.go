@@ -1,7 +1,9 @@
 package internal_test
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"testing"
 	"time"
@@ -10,31 +12,34 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/wostzone/hubapi/pkg/certsetup"
+	"github.com/wostzone/hubapi/pkg/hubclient"
 	"github.com/wostzone/hubapi/pkg/hubconfig"
+	"github.com/wostzone/hubapi/pkg/testenv"
 	"github.com/wostzone/owserver/internal"
 )
 
 var homeFolder string
-
-const pluginID = "owserver-test"
-
 var hubConfig *hubconfig.HubConfig
-var setupOnce = false
 
-// --- THIS REQUIRES A RUNNING HUB OR MESSAGE BUS ---
+const testPluginID = "owserver-test"
 
-// Use the project app folder during testing
+var mcmd *exec.Cmd
+
+// Use the project test folder during testing
 func setup() *internal.OWServerPB {
-	os.Remove("../test/onewire-nodes.json")
-
 	cwd, _ := os.Getwd()
 	homeFolder = path.Join(cwd, "../test")
+	mcmd = testenv.Setup(homeFolder, 0)
+
+	os.Remove("../test/onewire-nodes.json")
 	svc := internal.NewOWServerPB()
-	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, pluginID, &svc.Config)
-	hubConfig.Messenger.CertsFolder = "/etc/mosquitto/certs"
+
+	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, testPluginID, &svc.Config)
 	return svc
 }
 func teardown() {
+	testenv.Teardown(mcmd)
 }
 
 func TestStartStop(t *testing.T) {
@@ -48,17 +53,37 @@ func TestStartStop(t *testing.T) {
 }
 
 func TestPollTDs(t *testing.T) {
+	var rxMsg []byte
+	var rxThingID string
+
 	logrus.Infof("--- TestPollOnce ---")
 
 	svc := setup()
 	err := svc.Start(hubConfig)
-	require.NoError(t, err)
+	assert.NoError(t, err)
+
+	// listener should receive the TD
+	// FIXME: consumer connection port should not be hidden
+	hostPort := fmt.Sprintf("%s:%d", hubConfig.Messenger.Address, hubConfig.Messenger.Port+1)
+	caCertFile := path.Join(hubConfig.CertsFolder, certsetup.CaCertFile)
+	consumer := hubclient.NewHubClient(hostPort, caCertFile, "test-client", "")
+	err = consumer.Start()
+	assert.NoError(t, err)
+	consumer.Subscribe("", func(thingID string, msgType string, message []byte, senderID string) {
+		rxMsg = message
+		rxThingID = thingID
+	})
+	time.Sleep(time.Second)
 
 	// svc.Start(gwConfig, pluginConfig)
 	tds, err := svc.PollTDs()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	err = svc.PublishTDs(tds)
 	assert.NoError(t, err)
+
+	time.Sleep(time.Millisecond * 100)
+	assert.NotEmpty(t, rxThingID, "Did not receive a message")
+	assert.NotEmpty(t, rxMsg, "Did not receive message data")
 
 	time.Sleep(3 * time.Second)
 	teardown()
@@ -68,14 +93,15 @@ func TestPollValues(t *testing.T) {
 	svc := setup()
 
 	err := svc.Start(hubConfig)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
-	// svc.Start(gwConfig, pluginConfig)
+	// Get and publish the Things
 	tds, err := svc.PollTDs()
 	require.NoError(t, err)
 	err = svc.PublishTDs(tds)
 	assert.NoError(t, err)
 
+	// Get and publish Thing values
 	values, err := svc.PollValues()
 	require.NoError(t, err)
 	err = svc.PublishValues(values)

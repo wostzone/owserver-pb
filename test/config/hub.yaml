@@ -2,9 +2,8 @@
 
 # Message bus server
 messenger:
-  certsFolder: "/etc/mosquitto/certs"
   address: "localhost" # hostname:port or ip:port to listen on of message bus
-  port: 8883
+  port: 33100 # test port
 
 # Logging
 logging:
@@ -12,6 +11,7 @@ logging:
   logLevel: "info" # debug, info, warning, error. Default is warning
 
 #configFolder: "../config" # plugin config, relative to the working directory
+#certsFolder: "./certs"
 
 # Plugins to start
 plugins:

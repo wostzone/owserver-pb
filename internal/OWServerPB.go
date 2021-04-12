@@ -112,7 +112,7 @@ func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig) error {
 	pb.nodeInfo = make(map[string]*OneWireNode, 0) // map of node thing info objects by thing ID
 	pb.edsAPI = NewEdsAPI(pb.Config.EdsAddress, pb.Config.LoginName, pb.Config.Password)
 	pb.hubClient = hubclient.NewPluginClient(PluginID, hubConfig)
-	err = pb.hubClient.Start(false)
+	err = pb.hubClient.Start()
 	if err != nil {
 		logrus.Errorf("Protocol Binding for OWServer startup failed")
 		return err
