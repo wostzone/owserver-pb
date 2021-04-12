@@ -1,4 +1,4 @@
-package internal_test
+package eds_test
 
 import (
 	"os"
@@ -6,12 +6,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wostzone/owserver/internal"
+	"github.com/wostzone/owserver/internal/eds"
 )
+
+// Some tests require a living OWServer
+const edsAddress = "10.3.3.33"
 
 // Read EDS test data from file
 func TestReadEdsFromFile(t *testing.T) {
-	edsAPI := internal.NewEdsAPI("file://../test/owserver-details.xml", "", "")
+	edsAPI := eds.NewEdsAPI("file://../../test/owserver-details.xml", "", "")
 	rootNode, err := edsAPI.ReadEds()
 	assert.NoError(t, err)
 	require.NotNil(t, rootNode, "Expected root node")
@@ -21,7 +24,7 @@ func TestReadEdsFromFile(t *testing.T) {
 // Read EDS test data from file
 func TestReadEdsFromInvalidFile(t *testing.T) {
 	// error case, unknown file
-	edsAPI := internal.NewEdsAPI("file://../doesnotexist.xml", "", "")
+	edsAPI := eds.NewEdsAPI("file://../doesnotexist.xml", "", "")
 	rootNode, err := edsAPI.ReadEds()
 	assert.Error(t, err)
 	assert.Nil(t, rootNode, "Did not expect root node")
@@ -32,8 +35,7 @@ func TestReadEdsFromInvalidFile(t *testing.T) {
 // NOTE: This requires a live hub on the 'edsAddress'
 func TestReadEdsFromHub(t *testing.T) {
 
-	edsAddress := "10.3.3.33"
-	edsAPI := internal.NewEdsAPI(edsAddress, "", "")
+	edsAPI := eds.NewEdsAPI(edsAddress, "", "")
 	rootNode, err := edsAPI.ReadEds()
 
 	assert.NoError(t, err, "Failed reading EDS hub")
@@ -45,7 +47,7 @@ func TestReadEdsFromInvalidAddress(t *testing.T) {
 	// error case - bad hub
 	// error case, unknown file
 	edsAddress := "doesnoteexist"
-	edsAPI := internal.NewEdsAPI(edsAddress, "", "")
+	edsAPI := eds.NewEdsAPI(edsAddress, "", "")
 	rootNode, err := edsAPI.ReadEds()
 	assert.Error(t, err)
 	assert.Nil(t, rootNode)
@@ -54,9 +56,9 @@ func TestReadEdsFromInvalidAddress(t *testing.T) {
 // Parse the nodes xml file and test for correct results
 func TestParseNodeFile(t *testing.T) {
 	// remove cached nodes first
-	os.Remove("../test/onewire-nodes.json")
-	edsAddress := "file://../test/owserver-details.xml"
-	edsAPI := internal.NewEdsAPI(edsAddress, "", "")
+	os.Remove("../../test/onewire-nodes.json")
+	edsAddress := "file://../../test/owserver-details.xml"
+	edsAPI := eds.NewEdsAPI(edsAddress, "", "")
 
 	rootNode, err := edsAPI.ReadEds()
 	require.NoError(t, err)

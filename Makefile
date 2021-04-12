@@ -24,6 +24,8 @@ clean: ## Clean distribution files
 	rm -f $(DIST_FOLDER)/logs/*
 	rm -f $(DIST_FOLDER)/bin/*
 	rm -f $(DIST_FOLDER)/arm/*
+	rm -f test/certs/*
+	rm -f test/logs/*
 
 
 owserver-pb: ## Build owserver-pb plugin for amd64 and arm64

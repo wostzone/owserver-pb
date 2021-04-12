@@ -6,18 +6,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wostzone/hubapi/api"
 	"github.com/wostzone/hubapi/pkg/td"
+	"github.com/wostzone/owserver/internal/eds"
 )
 
-// family to device type. See also: http://owfs.sourceforge.net/simple_family.html
-// Todo: get from config file so it is easy to update
-var deviceTypeMap = map[string]api.DeviceType{
-	"10": api.DeviceTypeThermometer,
-	"28": api.DeviceTypeThermometer,
-	"7E": api.DeviceTypeMultisensor,
-}
-
 // CreateTDFromNode converts the node into a TD
-func (pb *OWServerPB) CreateTDFromNode(node *OneWireNode) (thingID string, thingTD api.ThingTD) {
+func (pb *OWServerPB) CreateTDFromNode(node *eds.OneWireNode) (thingID string, thingTD api.ThingTD) {
 	thingID = td.CreatePublisherThingID(pb.hubConfig.Zone, PluginID, node.NodeID, node.DeviceType)
 	thingTD = td.CreateTD(thingID, api.DeviceTypeGateway)
 	td.SetThingDescription(thingTD, node.Name, node.Description)

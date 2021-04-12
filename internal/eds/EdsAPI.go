@@ -1,5 +1,5 @@
-// Package internal Eds API methods
-package internal
+// Package eds with EDS OWServer API methods
+package eds
 
 import (
 	"encoding/xml"
@@ -12,6 +12,14 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wostzone/hubapi/api"
 )
+
+// family to device type. See also: http://owfs.sourceforge.net/simple_family.html
+// Todo: get from config file so it is easy to update
+var deviceTypeMap = map[string]api.DeviceType{
+	"10": api.DeviceTypeThermometer,
+	"28": api.DeviceTypeThermometer,
+	"7E": api.DeviceTypeMultisensor,
+}
 
 // AttrVocab maps OWServer attribute names to IoT vocabulary
 var AttrVocab = map[string]string{

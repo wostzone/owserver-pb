@@ -9,6 +9,7 @@ import (
 	"github.com/wostzone/hubapi/pkg/hubclient"
 	"github.com/wostzone/hubapi/pkg/hubconfig"
 	"github.com/wostzone/hubapi/pkg/td"
+	"github.com/wostzone/owserver/internal/eds"
 )
 
 // PluginID is the default ID of the WoST Logger plugin
@@ -28,10 +29,10 @@ type PluginConfig struct {
 // OWServerPB is a  hub protocol binding plugin for capturing 1-wire OWServer V2 Data
 type OWServerPB struct {
 	Config    PluginConfig         // options for accessing EDS OWServer
-	edsAPI    *EdsAPI              // EDS device access
+	edsAPI    *eds.EdsAPI          // EDS device access
 	hubConfig *hubconfig.HubConfig // hub based configuration
 	hubClient api.IHubClient
-	nodeInfo  map[string]*OneWireNode // map of node ID to node info and thingID
+	nodeInfo  map[string]*eds.OneWireNode // map of node ID to node info and thingID
 	running   bool
 }
 
@@ -109,8 +110,8 @@ func (pb *OWServerPB) heartbeat() {
 func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig) error {
 	var err error
 	pb.hubConfig = hubConfig
-	pb.nodeInfo = make(map[string]*OneWireNode, 0) // map of node thing info objects by thing ID
-	pb.edsAPI = NewEdsAPI(pb.Config.EdsAddress, pb.Config.LoginName, pb.Config.Password)
+	pb.nodeInfo = make(map[string]*eds.OneWireNode, 0) // map of node thing info objects by thing ID
+	pb.edsAPI = eds.NewEdsAPI(pb.Config.EdsAddress, pb.Config.LoginName, pb.Config.Password)
 	pb.hubClient = hubclient.NewPluginClient(PluginID, hubConfig)
 	err = pb.hubClient.Start()
 	if err != nil {

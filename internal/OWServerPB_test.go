@@ -24,32 +24,33 @@ var hubConfig *hubconfig.HubConfig
 
 const testPluginID = "owserver-test"
 
-var mcmd *exec.Cmd
+var mosquittoCmd *exec.Cmd
 
-// Use the project test folder during testing
-func setup() *internal.OWServerPB {
+// TestMain run mosquitto and use the project test folder as the home folder.
+// Make sure the certificates exist.
+func TestMain(m *testing.M) {
 	cwd, _ := os.Getwd()
 	homeFolder = path.Join(cwd, "../test")
-	mcmd = testenv.Setup(homeFolder, 0)
-
+	mosquittoCmd = testenv.Setup(homeFolder, 0)
+	if mosquittoCmd == nil {
+		logrus.Fatalf("Unable to setup mosquitto")
+	}
 	os.Remove("../test/onewire-nodes.json")
-	svc := internal.NewOWServerPB()
 
-	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, testPluginID, &svc.Config)
-	return svc
-}
-func teardown() {
-	testenv.Teardown(mcmd)
+	result := m.Run()
+	testenv.Teardown(mosquittoCmd)
+
+	os.Exit(result)
 }
 
 func TestStartStop(t *testing.T) {
 	logrus.Infof("--- TestStartStop ---")
-	svc := setup()
+	svc := internal.NewOWServerPB()
+	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, testPluginID, &svc.Config)
 	err := svc.Start(hubConfig)
 	assert.NoError(t, err)
 	time.Sleep(time.Millisecond)
 	svc.Stop()
-	teardown()
 }
 
 func TestPollTDs(t *testing.T) {
@@ -58,7 +59,8 @@ func TestPollTDs(t *testing.T) {
 
 	logrus.Infof("--- TestPollOnce ---")
 
-	svc := setup()
+	svc := internal.NewOWServerPB()
+	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, testPluginID, &svc.Config)
 	err := svc.Start(hubConfig)
 	assert.NoError(t, err)
 
@@ -86,11 +88,12 @@ func TestPollTDs(t *testing.T) {
 	assert.NotEmpty(t, rxMsg, "Did not receive message data")
 
 	time.Sleep(3 * time.Second)
-	teardown()
 }
+
 func TestPollValues(t *testing.T) {
 	logrus.Infof("--- TestPollOnce ---")
-	svc := setup()
+	svc := internal.NewOWServerPB()
+	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, testPluginID, &svc.Config)
 
 	err := svc.Start(hubConfig)
 	assert.NoError(t, err)
@@ -108,18 +111,17 @@ func TestPollValues(t *testing.T) {
 	assert.NoError(t, err)
 
 	time.Sleep(3 * time.Second)
-	teardown()
 }
 
 func TestPollInvalidAddress(t *testing.T) {
 	logrus.Infof("--- TestPollInvalidAddress ---")
 
-	svc := setup()
+	svc := internal.NewOWServerPB()
+	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, testPluginID, &svc.Config)
 	svc.Config.EdsAddress = "http://invalidAddress/"
 	// err := svc.Start(gwConfig, &badConfig)
 	tds, err := svc.PollTDs()
 	_ = tds
 	assert.Error(t, err)
-	teardown()
 
 }

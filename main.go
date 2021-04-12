@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+	"github.com/wostzone/hubapi/pkg/hubclient"
 	"github.com/wostzone/hubapi/pkg/hubconfig"
-	"github.com/wostzone/hubapi/pkg/plugin"
 	"github.com/wostzone/owserver/internal"
 )
 
@@ -20,7 +20,7 @@ func main() {
 		logrus.Errorf("Logger: Failed to start")
 		os.Exit(1)
 	}
-	plugin.WaitForSignal()
+	hubclient.WaitForSignal()
 	svc.Stop()
 	os.Exit(0)
 }
