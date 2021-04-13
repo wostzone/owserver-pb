@@ -6,7 +6,6 @@ publishTD: true # publish this TD on the message bus
 owserverAddress: 10.3.3.33
 loginName: ""
 password: ""
-#gatewayID: "owserver:1"   // in case of multiple instances each gateway must have a unique Thing ID
 
 # tdInterval in seconds for publishing updates to the TD's, default is 1 hour
 tdInterval: 3600
