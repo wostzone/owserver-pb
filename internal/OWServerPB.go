@@ -9,7 +9,7 @@ import (
 	"github.com/wostzone/hubapi-go/pkg/hubclient"
 	"github.com/wostzone/hubapi-go/pkg/hubconfig"
 	"github.com/wostzone/hubapi-go/pkg/td"
-	"github.com/wostzone/owserver/internal/eds"
+	"github.com/wostzone/owserver-pb/internal/eds"
 )
 
 // PluginID is the default ID of the WoST Logger plugin

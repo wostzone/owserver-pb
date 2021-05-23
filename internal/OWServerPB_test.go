@@ -16,7 +16,7 @@ import (
 	"github.com/wostzone/hubapi-go/pkg/hubclient"
 	"github.com/wostzone/hubapi-go/pkg/hubconfig"
 	"github.com/wostzone/hubapi-go/pkg/testenv"
-	"github.com/wostzone/owserver/internal"
+	"github.com/wostzone/owserver-pb/internal"
 )
 
 var homeFolder string

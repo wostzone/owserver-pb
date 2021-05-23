@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wostzone/hubapi-go/api"
 	"github.com/wostzone/hubapi-go/pkg/td"
-	"github.com/wostzone/owserver/internal/eds"
+	"github.com/wostzone/owserver-pb/internal/eds"
 )
 
 // CreateTDFromNode converts the node into a TD
