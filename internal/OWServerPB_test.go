@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/wostzone/hubapi/pkg/certsetup"
-	"github.com/wostzone/hubapi/pkg/hubclient"
-	"github.com/wostzone/hubapi/pkg/hubconfig"
-	"github.com/wostzone/hubapi/pkg/testenv"
+	"github.com/wostzone/hubapi-go/pkg/certsetup"
+	"github.com/wostzone/hubapi-go/pkg/hubclient"
+	"github.com/wostzone/hubapi-go/pkg/hubconfig"
+	"github.com/wostzone/hubapi-go/pkg/testenv"
 	"github.com/wostzone/owserver/internal"
 )
 

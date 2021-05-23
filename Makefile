@@ -19,7 +19,7 @@ test: .PHONY ## Run tests (todo fix this)
 		go test -v ./...
 
 clean: ## Clean distribution files
-	$(GOCLEAN)
+	go clean -cache
 	rm -f $(DIST_FOLDER)/certs/*
 	rm -f $(DIST_FOLDER)/logs/*
 	rm -f $(DIST_FOLDER)/bin/*

@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hubapi/api"
-	"github.com/wostzone/hubapi/pkg/td"
+	"github.com/wostzone/hubapi-go/api"
+	"github.com/wostzone/hubapi-go/pkg/td"
 	"github.com/wostzone/owserver/internal/eds"
 )
 

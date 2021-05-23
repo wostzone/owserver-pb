@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wostzone/owserver/internal/eds"
+	"github.com/wostzone/owserver-pb/internal/eds"
 )
 
 // Some tests require a living OWServer

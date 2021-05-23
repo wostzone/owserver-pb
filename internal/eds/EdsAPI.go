@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hubapi/api"
+	"github.com/wostzone/hubapi-go/api"
 )
 
 // family to device type. See also: http://owfs.sourceforge.net/simple_family.html
