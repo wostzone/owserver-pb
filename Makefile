@@ -20,6 +20,7 @@ test: .PHONY ## Run tests (todo fix this)
 
 clean: ## Clean distribution files
 	go clean -cache
+	go mod tidy
 	rm -f $(DIST_FOLDER)/certs/*
 	rm -f $(DIST_FOLDER)/logs/*
 	rm -f $(DIST_FOLDER)/bin/*
