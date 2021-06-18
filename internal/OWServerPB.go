@@ -13,7 +13,7 @@ import (
 )
 
 // PluginID is the default ID of the WoST Logger plugin
-const PluginID = "owserver"
+const PluginID = "owserver-pb"
 
 // PluginConfig with owserver plugin configuration
 type PluginConfig struct {
