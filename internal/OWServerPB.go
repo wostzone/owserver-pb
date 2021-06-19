@@ -9,7 +9,7 @@ import (
 	"github.com/wostzone/wostlib-go/pkg/hubclient"
 	"github.com/wostzone/wostlib-go/pkg/hubconfig"
 	"github.com/wostzone/wostlib-go/pkg/td"
-	"github.com/wostzone/wostlib-go/wostapi"
+	"github.com/wostzone/wostlib-go/pkg/vocab"
 )
 
 // PluginID is the default ID of the WoST Logger plugin
@@ -31,7 +31,7 @@ type OWServerPB struct {
 	Config    PluginConfig         // options for accessing EDS OWServer
 	edsAPI    *eds.EdsAPI          // EDS device access
 	hubConfig *hubconfig.HubConfig // hub based configuration
-	hubClient wostapi.IHubClient
+	hubClient *hubclient.MqttHubClient
 	nodeInfo  map[string]*eds.OneWireNode // map of node ID to node info and thingID
 	running   bool
 }
@@ -41,22 +41,22 @@ func (pb *OWServerPB) PublishServiceTD() {
 	if !pb.Config.PublishTD {
 		return
 	}
-	deviceType := wostapi.DeviceTypeService
+	deviceType := vocab.DeviceTypeService
 	thingID := td.CreatePublisherThingID(pb.hubConfig.Zone, "hub", pb.Config.ClientID, deviceType)
 	logrus.Infof("Publishing this service TD %s", thingID)
 	thingTD := td.CreateTD(thingID, deviceType)
 	// Include the service configuration properties
-	prop := td.CreateProperty(wostapi.PropNameAddress, "Gateway Address", wostapi.PropertyTypeAttr)
+	prop := td.CreateProperty(vocab.PropNameAddress, "Gateway Address", vocab.PropertyTypeAttr)
 	td.SetPropertyDataTypeString(prop, 0, 0)
 	//
-	td.AddTDProperty(thingTD, wostapi.PropNameAddress, prop)
+	td.AddTDProperty(thingTD, vocab.PropNameAddress, prop)
 	td.SetThingDescription(thingTD, "EDS OWServer-V2 Protocol binding",
 		"This service publishes information on The EDS OWServer 1-wire gateway and its connected sensors")
 	pb.hubClient.PublishTD(thingID, thingTD)
 }
 
 // PublishThingsTD publishes the TD of Things
-func (pb *OWServerPB) PublishTDs(tds map[string]wostapi.ThingTD) error {
+func (pb *OWServerPB) PublishTDs(tds map[string]td.ThingTD) error {
 	var err error
 	for thingID, td := range tds {
 		err = pb.hubClient.PublishTD(thingID, td)
@@ -112,7 +112,7 @@ func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig) error {
 	pb.hubConfig = hubConfig
 	pb.nodeInfo = make(map[string]*eds.OneWireNode, 0) // map of node thing info objects by thing ID
 	pb.edsAPI = eds.NewEdsAPI(pb.Config.EdsAddress, pb.Config.LoginName, pb.Config.Password)
-	pb.hubClient = hubclient.NewPluginClient(PluginID, hubConfig)
+	pb.hubClient = hubclient.NewMqttHubPluginClient(PluginID, hubConfig)
 	err = pb.hubClient.Start()
 	if err != nil {
 		logrus.Errorf("Protocol Binding for OWServer startup failed")

@@ -4,9 +4,9 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hubapi-go/pkg/hubclient"
-	"github.com/wostzone/hubapi-go/pkg/hubconfig"
 	"github.com/wostzone/owserver-pb/internal"
+	"github.com/wostzone/wostlib-go/pkg/hubclient"
+	"github.com/wostzone/wostlib-go/pkg/hubconfig"
 )
 
 // Main entry to WoST protocol adapter for owserver-v2

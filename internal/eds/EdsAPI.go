@@ -10,23 +10,23 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/wostlib-go/wostapi"
+	"github.com/wostzone/wostlib-go/pkg/vocab"
 )
 
 // family to device type. See also: http://owfs.sourceforge.net/simple_family.html
 // Todo: get from config file so it is easy to update
-var deviceTypeMap = map[string]wostapi.DeviceType{
-	"10": wostapi.DeviceTypeThermometer,
-	"28": wostapi.DeviceTypeThermometer,
-	"7E": wostapi.DeviceTypeMultisensor,
+var deviceTypeMap = map[string]vocab.DeviceType{
+	"10": vocab.DeviceTypeThermometer,
+	"28": vocab.DeviceTypeThermometer,
+	"7E": vocab.DeviceTypeMultisensor,
 }
 
 // AttrVocab maps OWServer attribute names to IoT vocabulary
 var AttrVocab = map[string]string{
-	"MACAddress": wostapi.PropNameMAC,
-	"DateTime":   wostapi.PropNameDateTime,
-	"DeviceName": wostapi.PropNameName,
-	"HostName":   wostapi.PropNameHostname,
+	"MACAddress": vocab.PropNameMAC,
+	"DateTime":   vocab.PropNameDateTime,
+	"DeviceName": vocab.PropNameName,
+	"HostName":   vocab.PropNameHostname,
 }
 
 // sensorTypeMap maps OWServer sensor names to IoT vocabulary
@@ -34,28 +34,28 @@ var SensorTypeVocab = map[string]struct {
 	name     string
 	dataType string
 }{
-	// "BarometricPressureHg": wostapi.PropNameAtmosphericPressure, // unit Hg
-	"BarometricPressureMb": {name: wostapi.PropNameAtmosphericPressure,
-		dataType: wostapi.WoTDataTypeNumber}, // unit Mb
-	"DewPoint":    {name: wostapi.PropNameDewpoint, dataType: wostapi.WoTDataTypeNumber},
-	"HeatIndex":   {name: wostapi.PropNameHeatIndex, dataType: wostapi.WoTDataTypeNumber},
-	"Humidity":    {name: wostapi.PropNameHumidity, dataType: wostapi.WoTDataTypeNumber},
-	"Humidex":     {name: wostapi.PropNameHumidex, dataType: wostapi.WoTDataTypeNumber},
-	"Light":       {name: wostapi.PropNameLuminance, dataType: wostapi.WoTDataTypeNumber},
-	"RelayState":  {name: wostapi.PropNameRelay, dataType: wostapi.WoTDataTypeBool},
-	"Temperature": {name: wostapi.PropNameTemperature, dataType: wostapi.WoTDataTypeNumber},
+	// "BarometricPressureHg": vocab.PropNameAtmosphericPressure, // unit Hg
+	"BarometricPressureMb": {name: vocab.PropNameAtmosphericPressure,
+		dataType: vocab.WoTDataTypeNumber}, // unit Mb
+	"DewPoint":    {name: vocab.PropNameDewpoint, dataType: vocab.WoTDataTypeNumber},
+	"HeatIndex":   {name: vocab.PropNameHeatIndex, dataType: vocab.WoTDataTypeNumber},
+	"Humidity":    {name: vocab.PropNameHumidity, dataType: vocab.WoTDataTypeNumber},
+	"Humidex":     {name: vocab.PropNameHumidex, dataType: vocab.WoTDataTypeNumber},
+	"Light":       {name: vocab.PropNameLuminance, dataType: vocab.WoTDataTypeNumber},
+	"RelayState":  {name: vocab.PropNameRelay, dataType: vocab.WoTDataTypeBool},
+	"Temperature": {name: vocab.PropNameTemperature, dataType: vocab.WoTDataTypeNumber},
 }
 
 // unitNameMap maps OWServer unit names to IoT vocabulary
 var UnitNameVocab = map[string]string{
-	"PercentRelativeHumidity": wostapi.UnitNamePercent,
-	"Millibars":               wostapi.UnitNameMillibar,
-	"Centigrade":              wostapi.UnitNameCelcius,
-	"Fahrenheit":              wostapi.UnitNameFahrenheit,
-	"InchesOfMercury":         wostapi.UnitNameMercury,
-	"Lux":                     wostapi.UnitNameLux,
-	"#":                       wostapi.UnitNameCount,
-	"Volt":                    wostapi.UnitNameVolt,
+	"PercentRelativeHumidity": vocab.UnitNamePercent,
+	"Millibars":               vocab.UnitNameMillibar,
+	"Centigrade":              vocab.UnitNameCelcius,
+	"Fahrenheit":              vocab.UnitNameFahrenheit,
+	"InchesOfMercury":         vocab.UnitNameMercury,
+	"Lux":                     vocab.UnitNameLux,
+	"#":                       vocab.UnitNameCount,
+	"Volt":                    vocab.UnitNameVolt,
 }
 
 // EdsAPI EDS device API properties and methods
@@ -84,10 +84,10 @@ type OneWireAttr struct {
 	Unit         string
 	Writable     bool
 	Value        string
-	PropertyType wostapi.ThingPropType
+	PropertyType vocab.ThingPropType
 }
 type OneWireNode struct {
-	DeviceType wostapi.DeviceType
+	DeviceType vocab.DeviceType
 	// ThingID     string
 	NodeID      string // hardware ID
 	Name        string
@@ -117,13 +117,13 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 		Name:        xmlNode.XMLName.Local,
 		Description: xmlNode.Description,
 		Attr:        make(map[string]OneWireAttr, 0),
-		DeviceType:  wostapi.DeviceTypeGateway,
+		DeviceType:  vocab.DeviceTypeGateway,
 	}
 	owNodeList = append(owNodeList, &owNode)
 	// todo: find a better place for this
 	if isRootNode {
 		owAttr := OneWireAttr{
-			Name:  wostapi.PropNameLatency,
+			Name:  vocab.PropNameLatency,
 			Value: fmt.Sprintf("%.3f", latency.Seconds()),
 			Unit:  "sec",
 		}
@@ -134,20 +134,20 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 		// if the xmlnode has no subnodes then it is a parameter describing the current node
 		if len(node.Nodes) == 0 {
 			// standardize the naming of properties and property types
-			propType := wostapi.PropertyTypeAttr
+			propType := vocab.PropertyTypeAttr
 			writable := (strings.ToLower(node.Writable) == "true")
 			attrName := node.XMLName.Local
 			sensorInfo, isSensor := SensorTypeVocab[attrName]
 			if isSensor {
 				attrName = sensorInfo.name
-				propType = wostapi.PropertyTypeSensor
+				propType = vocab.PropertyTypeSensor
 				if writable {
-					propType = wostapi.PropertyTypeActuator
+					propType = vocab.PropertyTypeActuator
 				}
 			} else {
-				propType = wostapi.PropertyTypeAttr
+				propType = vocab.PropertyTypeAttr
 				if writable {
-					propType = wostapi.PropertyTypeConfig
+					propType = vocab.PropertyTypeConfig
 				}
 				attrName, _ = applyVocabulary(attrName, AttrVocab)
 			}
@@ -165,7 +165,7 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 			if node.XMLName.Local == "Family" {
 				deviceType := deviceTypeMap[owAttr.Value]
 				if deviceType == "" {
-					deviceType = wostapi.DeviceTypeUnknown
+					deviceType = vocab.DeviceTypeUnknown
 				}
 				owNode.DeviceType = deviceType
 			} else if node.XMLName.Local == "ROMId" {

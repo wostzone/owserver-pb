@@ -6,13 +6,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wostzone/owserver-pb/internal/eds"
 	"github.com/wostzone/wostlib-go/pkg/td"
-	"github.com/wostzone/wostlib-go/wostapi"
+	"github.com/wostzone/wostlib-go/pkg/vocab"
 )
 
 // CreateTDFromNode converts the node into a TD
-func (pb *OWServerPB) CreateTDFromNode(node *eds.OneWireNode) (thingID string, thingTD wostapi.ThingTD) {
+func (pb *OWServerPB) CreateTDFromNode(node *eds.OneWireNode) (thingID string, thingTD td.ThingTD) {
 	thingID = td.CreatePublisherThingID(pb.hubConfig.Zone, PluginID, node.NodeID, node.DeviceType)
-	thingTD = td.CreateTD(thingID, wostapi.DeviceTypeGateway)
+	thingTD = td.CreateTD(thingID, vocab.DeviceTypeGateway)
 	td.SetThingDescription(thingTD, node.Name, node.Description)
 
 	// Map node attribute to Thing properties
@@ -32,9 +32,9 @@ func (pb *OWServerPB) CreateTDFromNode(node *eds.OneWireNode) (thingID string, t
 }
 
 // PollTDs polls the OWServer hub and converts the result to Thing Definitions
-func (pb *OWServerPB) PollTDs() (map[string]wostapi.ThingTD, error) {
+func (pb *OWServerPB) PollTDs() (map[string]td.ThingTD, error) {
 	// tds is a map of ThingID:ThingTD
-	tds := make(map[string]wostapi.ThingTD, 0)
+	tds := make(map[string]td.ThingTD, 0)
 
 	if pb.edsAPI == nil {
 		err := fmt.Errorf("EDS API not initialized")
