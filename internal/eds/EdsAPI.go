@@ -10,23 +10,23 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hubapi-go/api"
+	"github.com/wostzone/wostlib-go/wostapi"
 )
 
 // family to device type. See also: http://owfs.sourceforge.net/simple_family.html
 // Todo: get from config file so it is easy to update
-var deviceTypeMap = map[string]api.DeviceType{
-	"10": api.DeviceTypeThermometer,
-	"28": api.DeviceTypeThermometer,
-	"7E": api.DeviceTypeMultisensor,
+var deviceTypeMap = map[string]wostapi.DeviceType{
+	"10": wostapi.DeviceTypeThermometer,
+	"28": wostapi.DeviceTypeThermometer,
+	"7E": wostapi.DeviceTypeMultisensor,
 }
 
 // AttrVocab maps OWServer attribute names to IoT vocabulary
 var AttrVocab = map[string]string{
-	"MACAddress": api.PropNameMAC,
-	"DateTime":   api.PropNameDateTime,
-	"DeviceName": api.PropNameName,
-	"HostName":   api.PropNameHostname,
+	"MACAddress": wostapi.PropNameMAC,
+	"DateTime":   wostapi.PropNameDateTime,
+	"DeviceName": wostapi.PropNameName,
+	"HostName":   wostapi.PropNameHostname,
 }
 
 // sensorTypeMap maps OWServer sensor names to IoT vocabulary
@@ -34,28 +34,28 @@ var SensorTypeVocab = map[string]struct {
 	name     string
 	dataType string
 }{
-	// "BarometricPressureHg": api.PropNameAtmosphericPressure, // unit Hg
-	"BarometricPressureMb": {name: api.PropNameAtmosphericPressure,
-		dataType: api.WoTDataTypeNumber}, // unit Mb
-	"DewPoint":    {name: api.PropNameDewpoint, dataType: api.WoTDataTypeNumber},
-	"HeatIndex":   {name: api.PropNameHeatIndex, dataType: api.WoTDataTypeNumber},
-	"Humidity":    {name: api.PropNameHumidity, dataType: api.WoTDataTypeNumber},
-	"Humidex":     {name: api.PropNameHumidex, dataType: api.WoTDataTypeNumber},
-	"Light":       {name: api.PropNameLuminance, dataType: api.WoTDataTypeNumber},
-	"RelayState":  {name: api.PropNameRelay, dataType: api.WoTDataTypeBool},
-	"Temperature": {name: api.PropNameTemperature, dataType: api.WoTDataTypeNumber},
+	// "BarometricPressureHg": wostapi.PropNameAtmosphericPressure, // unit Hg
+	"BarometricPressureMb": {name: wostapi.PropNameAtmosphericPressure,
+		dataType: wostapi.WoTDataTypeNumber}, // unit Mb
+	"DewPoint":    {name: wostapi.PropNameDewpoint, dataType: wostapi.WoTDataTypeNumber},
+	"HeatIndex":   {name: wostapi.PropNameHeatIndex, dataType: wostapi.WoTDataTypeNumber},
+	"Humidity":    {name: wostapi.PropNameHumidity, dataType: wostapi.WoTDataTypeNumber},
+	"Humidex":     {name: wostapi.PropNameHumidex, dataType: wostapi.WoTDataTypeNumber},
+	"Light":       {name: wostapi.PropNameLuminance, dataType: wostapi.WoTDataTypeNumber},
+	"RelayState":  {name: wostapi.PropNameRelay, dataType: wostapi.WoTDataTypeBool},
+	"Temperature": {name: wostapi.PropNameTemperature, dataType: wostapi.WoTDataTypeNumber},
 }
 
 // unitNameMap maps OWServer unit names to IoT vocabulary
 var UnitNameVocab = map[string]string{
-	"PercentRelativeHumidity": api.UnitNamePercent,
-	"Millibars":               api.UnitNameMillibar,
-	"Centigrade":              api.UnitNameCelcius,
-	"Fahrenheit":              api.UnitNameFahrenheit,
-	"InchesOfMercury":         api.UnitNameMercury,
-	"Lux":                     api.UnitNameLux,
-	"#":                       api.UnitNameCount,
-	"Volt":                    api.UnitNameVolt,
+	"PercentRelativeHumidity": wostapi.UnitNamePercent,
+	"Millibars":               wostapi.UnitNameMillibar,
+	"Centigrade":              wostapi.UnitNameCelcius,
+	"Fahrenheit":              wostapi.UnitNameFahrenheit,
+	"InchesOfMercury":         wostapi.UnitNameMercury,
+	"Lux":                     wostapi.UnitNameLux,
+	"#":                       wostapi.UnitNameCount,
+	"Volt":                    wostapi.UnitNameVolt,
 }
 
 // EdsAPI EDS device API properties and methods
@@ -84,10 +84,10 @@ type OneWireAttr struct {
 	Unit         string
 	Writable     bool
 	Value        string
-	PropertyType api.ThingPropType
+	PropertyType wostapi.ThingPropType
 }
 type OneWireNode struct {
-	DeviceType api.DeviceType
+	DeviceType wostapi.DeviceType
 	// ThingID     string
 	NodeID      string // hardware ID
 	Name        string
@@ -117,13 +117,13 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 		Name:        xmlNode.XMLName.Local,
 		Description: xmlNode.Description,
 		Attr:        make(map[string]OneWireAttr, 0),
-		DeviceType:  api.DeviceTypeGateway,
+		DeviceType:  wostapi.DeviceTypeGateway,
 	}
 	owNodeList = append(owNodeList, &owNode)
 	// todo: find a better place for this
 	if isRootNode {
 		owAttr := OneWireAttr{
-			Name:  api.PropNameLatency,
+			Name:  wostapi.PropNameLatency,
 			Value: fmt.Sprintf("%.3f", latency.Seconds()),
 			Unit:  "sec",
 		}
@@ -134,20 +134,20 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 		// if the xmlnode has no subnodes then it is a parameter describing the current node
 		if len(node.Nodes) == 0 {
 			// standardize the naming of properties and property types
-			propType := api.PropertyTypeAttr
+			propType := wostapi.PropertyTypeAttr
 			writable := (strings.ToLower(node.Writable) == "true")
 			attrName := node.XMLName.Local
 			sensorInfo, isSensor := SensorTypeVocab[attrName]
 			if isSensor {
 				attrName = sensorInfo.name
-				propType = api.PropertyTypeSensor
+				propType = wostapi.PropertyTypeSensor
 				if writable {
-					propType = api.PropertyTypeActuator
+					propType = wostapi.PropertyTypeActuator
 				}
 			} else {
-				propType = api.PropertyTypeAttr
+				propType = wostapi.PropertyTypeAttr
 				if writable {
-					propType = api.PropertyTypeConfig
+					propType = wostapi.PropertyTypeConfig
 				}
 				attrName, _ = applyVocabulary(attrName, AttrVocab)
 			}
@@ -165,7 +165,7 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 			if node.XMLName.Local == "Family" {
 				deviceType := deviceTypeMap[owAttr.Value]
 				if deviceType == "" {
-					deviceType = api.DeviceTypeUnknown
+					deviceType = wostapi.DeviceTypeUnknown
 				}
 				owNode.DeviceType = deviceType
 			} else if node.XMLName.Local == "ROMId" {

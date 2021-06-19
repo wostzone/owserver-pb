@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hubapi-go/pkg/td"
+	"github.com/wostzone/wostlib-go/pkg/td"
 )
 
 // PollValues polls the OWServer hub for Thing property values

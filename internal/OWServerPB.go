@@ -5,11 +5,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/wostzone/hubapi-go/api"
-	"github.com/wostzone/hubapi-go/pkg/hubclient"
-	"github.com/wostzone/hubapi-go/pkg/hubconfig"
-	"github.com/wostzone/hubapi-go/pkg/td"
 	"github.com/wostzone/owserver-pb/internal/eds"
+	"github.com/wostzone/wostlib-go/pkg/hubclient"
+	"github.com/wostzone/wostlib-go/pkg/hubconfig"
+	"github.com/wostzone/wostlib-go/pkg/td"
+	"github.com/wostzone/wostlib-go/wostapi"
 )
 
 // PluginID is the default ID of the WoST Logger plugin
@@ -31,7 +31,7 @@ type OWServerPB struct {
 	Config    PluginConfig         // options for accessing EDS OWServer
 	edsAPI    *eds.EdsAPI          // EDS device access
 	hubConfig *hubconfig.HubConfig // hub based configuration
-	hubClient api.IHubClient
+	hubClient wostapi.IHubClient
 	nodeInfo  map[string]*eds.OneWireNode // map of node ID to node info and thingID
 	running   bool
 }
@@ -41,22 +41,22 @@ func (pb *OWServerPB) PublishServiceTD() {
 	if !pb.Config.PublishTD {
 		return
 	}
-	deviceType := api.DeviceTypeService
+	deviceType := wostapi.DeviceTypeService
 	thingID := td.CreatePublisherThingID(pb.hubConfig.Zone, "hub", pb.Config.ClientID, deviceType)
 	logrus.Infof("Publishing this service TD %s", thingID)
 	thingTD := td.CreateTD(thingID, deviceType)
 	// Include the service configuration properties
-	prop := td.CreateProperty(api.PropNameAddress, "Gateway Address", api.PropertyTypeAttr)
+	prop := td.CreateProperty(wostapi.PropNameAddress, "Gateway Address", wostapi.PropertyTypeAttr)
 	td.SetPropertyDataTypeString(prop, 0, 0)
 	//
-	td.AddTDProperty(thingTD, api.PropNameAddress, prop)
+	td.AddTDProperty(thingTD, wostapi.PropNameAddress, prop)
 	td.SetThingDescription(thingTD, "EDS OWServer-V2 Protocol binding",
 		"This service publishes information on The EDS OWServer 1-wire gateway and its connected sensors")
 	pb.hubClient.PublishTD(thingID, thingTD)
 }
 
 // PublishThingsTD publishes the TD of Things
-func (pb *OWServerPB) PublishTDs(tds map[string]api.ThingTD) error {
+func (pb *OWServerPB) PublishTDs(tds map[string]wostapi.ThingTD) error {
 	var err error
 	for thingID, td := range tds {
 		err = pb.hubClient.PublishTD(thingID, td)
