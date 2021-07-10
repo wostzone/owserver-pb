@@ -1,7 +1,6 @@
 package internal_test
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -13,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wostzone/owserver-pb/internal"
-	"github.com/wostzone/wostlib-go/pkg/certsetup"
 	"github.com/wostzone/wostlib-go/pkg/hubclient"
 	"github.com/wostzone/wostlib-go/pkg/hubconfig"
 	"github.com/wostzone/wostlib-go/pkg/testenv"
@@ -66,12 +64,12 @@ func TestPollTDs(t *testing.T) {
 
 	// listener should receive the TD
 	// FIXME: consumer connection port should not be hidden
-	hostPort := fmt.Sprintf("%s:%d", hubConfig.Messenger.Address, hubConfig.Messenger.ClientPortMqtt)
-	caCertFile := path.Join(hubConfig.CertsFolder, certsetup.CaCertFile)
-	consumer := hubclient.NewMqttHubClient(hostPort, caCertFile, "test-client", "")
-	err = consumer.Start()
+	// hostPort := fmt.Sprintf("%s:%d", hubConfig.Messenger.Address, hubConfig.Messenger.CertPortMqtt)
+	// caCertFile := path.Join(hubConfig.CertsFolder, certsetup.CaCertFile)
+	testClient := hubclient.NewMqttHubPluginClient("testplugin", hubConfig)
+	err = testClient.Start()
 	assert.NoError(t, err)
-	consumer.Subscribe("", func(thingID string, msgType string, message []byte, senderID string) {
+	testClient.Subscribe("", func(thingID string, msgType string, message []byte, senderID string) {
 		rxMsg = message
 		rxThingID = thingID
 	})

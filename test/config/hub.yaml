@@ -3,10 +3,8 @@
 # Message bus server
 messenger:
   address: "localhost" # hostname:port or ip:port to listen on of message bus
-  clientPortMqtt: 33100
-  clientPortWS: 33101
-  pluginPortMqtt: 33102
-  pluginPortWS: 33103
+  certPortMqtt: 33100
+  unpwPortWS: 33101
 
 # Logging
 logging:

@@ -53,7 +53,7 @@ Build with:
 ```
 make all
 ```
-The plugin can be found in dist/bin for 64bit intel or amd processors, or dist/arm for 64 bit ARM processors. Copy this to the hub bin or arm directory.
+The plugin can be found in dist/bin. Copy this to the hub bin directory.
 An example configuration file is provided in config/owserver.yaml. Copy this to the hub config directory.
 
 
