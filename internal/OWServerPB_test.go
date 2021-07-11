@@ -18,6 +18,7 @@ import (
 )
 
 var homeFolder string
+var configFolder string
 var hubConfig *hubconfig.HubConfig
 
 const testPluginID = "owserver-test"
@@ -25,11 +26,14 @@ const testPluginID = "owserver-test"
 var mosquittoCmd *exec.Cmd
 
 // TestMain run mosquitto and use the project test folder as the home folder.
-// Make sure the certificates exist.
 func TestMain(m *testing.M) {
 	cwd, _ := os.Getwd()
 	homeFolder = path.Join(cwd, "../test")
-	mosquittoCmd = testenv.Setup(homeFolder, 0)
+	hubConfig, _ = hubconfig.LoadHubConfig(homeFolder)
+	configFolder = hubConfig.ConfigFolder
+
+	// testenv creates certificates
+	mosquittoCmd = testenv.Setup(homeFolder, hubConfig.MqttCertPort)
 	if mosquittoCmd == nil {
 		logrus.Fatalf("Unable to setup mosquitto")
 	}
@@ -44,8 +48,9 @@ func TestMain(m *testing.M) {
 func TestStartStop(t *testing.T) {
 	logrus.Infof("--- TestStartStop ---")
 	svc := internal.NewOWServerPB()
-	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, testPluginID, &svc.Config)
-	err := svc.Start(hubConfig)
+	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config)
+	assert.NoError(t, err)
+	err = svc.Start(hubConfig)
 	assert.NoError(t, err)
 	time.Sleep(time.Millisecond)
 	svc.Stop()
@@ -58,8 +63,8 @@ func TestPollTDs(t *testing.T) {
 	logrus.Infof("--- TestPollOnce ---")
 
 	svc := internal.NewOWServerPB()
-	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, testPluginID, &svc.Config)
-	err := svc.Start(hubConfig)
+	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config)
+	err = svc.Start(hubConfig)
 	assert.NoError(t, err)
 
 	// listener should receive the TD
@@ -91,9 +96,10 @@ func TestPollTDs(t *testing.T) {
 func TestPollValues(t *testing.T) {
 	logrus.Infof("--- TestPollOnce ---")
 	svc := internal.NewOWServerPB()
-	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, testPluginID, &svc.Config)
+	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config)
+	assert.NoError(t, err)
 
-	err := svc.Start(hubConfig)
+	err = svc.Start(hubConfig)
 	assert.NoError(t, err)
 
 	// Get and publish the Things
@@ -115,7 +121,9 @@ func TestPollInvalidAddress(t *testing.T) {
 	logrus.Infof("--- TestPollInvalidAddress ---")
 
 	svc := internal.NewOWServerPB()
-	hubConfig, _ = hubconfig.LoadPluginConfig(homeFolder, testPluginID, &svc.Config)
+	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config)
+	assert.NoError(t, err)
+
 	svc.Config.EdsAddress = "http://invalidAddress/"
 	// err := svc.Start(gwConfig, &badConfig)
 	tds, err := svc.PollTDs()
