@@ -6,7 +6,7 @@ mqttCertPort: 33100
 mqttUnpwPortWS: 33101
 
 # Logging
-#logFile: "../logs/hub.log" # relative to this config file
+#logFile: "../logs/{{.pluginID}}.log" # relative to this config file
 logLevel: "info" # debug, info, warning, error. Default is warning
 
 #configFolder: "../config" # plugin config, relative to the working directory

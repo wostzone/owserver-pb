@@ -29,7 +29,7 @@ var mosquittoCmd *exec.Cmd
 func TestMain(m *testing.M) {
 	cwd, _ := os.Getwd()
 	homeFolder = path.Join(cwd, "../test")
-	hubConfig, _ = hubconfig.LoadHubConfig(homeFolder)
+	hubConfig, _ = hubconfig.LoadHubConfig(homeFolder, "plugin1")
 	configFolder = hubConfig.ConfigFolder
 
 	// testenv creates certificates
@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 func TestStartStop(t *testing.T) {
 	logrus.Infof("--- TestStartStop ---")
 	svc := internal.NewOWServerPB()
-	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config)
+	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config, nil)
 	assert.NoError(t, err)
 	err = svc.Start(hubConfig)
 	assert.NoError(t, err)
@@ -63,7 +63,7 @@ func TestPollTDs(t *testing.T) {
 	logrus.Infof("--- TestPollOnce ---")
 
 	svc := internal.NewOWServerPB()
-	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config)
+	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config, nil)
 	err = svc.Start(hubConfig)
 	assert.NoError(t, err)
 
@@ -96,7 +96,7 @@ func TestPollTDs(t *testing.T) {
 func TestPollValues(t *testing.T) {
 	logrus.Infof("--- TestPollOnce ---")
 	svc := internal.NewOWServerPB()
-	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config)
+	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config, nil)
 	assert.NoError(t, err)
 
 	err = svc.Start(hubConfig)
@@ -121,7 +121,7 @@ func TestPollInvalidAddress(t *testing.T) {
 	logrus.Infof("--- TestPollInvalidAddress ---")
 
 	svc := internal.NewOWServerPB()
-	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config)
+	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config, nil)
 	assert.NoError(t, err)
 
 	svc.Config.EdsAddress = "http://invalidAddress/"
