@@ -8,24 +8,22 @@ Convert EDS OWServer 1-wire devices to WoT Things.
 
 ## Status 
 
-The status of this plugin is Alpha. It is functional but breaking changes must be expected.
+The status of this plugin is Alpha. It is functional but breaking changes can still happen.
 
 This plugin provides basic functionality:
 1. Publish TDs for the EDS gateway and connected 1-wire devices
 2. Publish value update messages
 
-Planned:
-3. Support for configuration updates
-4. Improve conformance to WoT TD's with publishing updates and use of TD forms
-
 
 ## Audience
 
-This project is aimed at software developers, system implementors and people with a keen interest in IoT that value security and interoperability.
+This project is aimed at IoT software developers that value the security and interoperability that WoST brings.
 
 ## Dependencies
 
 This plugin needs a EDS OWServer hub device on the local network. 
+
+This plugin operates as a plugin to the [WoST Hub](https://github.com/wostzone/hub).
 
 ## Summary
 
@@ -38,7 +36,7 @@ This is a relative simple plugin that can serve as an example on writing plugins
 
 ### System Requirements
 
-This plugin runs as part of the WoST hub. It has no additional requirements other than a working hub.
+This plugin runs as part of the WoST hub. It has no additional requirements other than a working hub. It uses the wostlib-go library to connect to the mqtt message bus and build Thing Description (TD) and event messages.
 
 
 ### Manual Installation

@@ -27,7 +27,7 @@ clean: ## Clean distribution files
 
 
 owserver-pb: ## Build owserver-pb plugin 
-	go build -o $(DIST_FOLDER)/bin/$@ ./main.go
+	go build -o $(DIST_FOLDER)/bin/$@ ./cmd/owserver-pb/main.go
 	@echo "> SUCCESS. Plugin '$@' can be found at $(DIST_FOLDER)/bin/$@"
 
 help: ## Show this help
