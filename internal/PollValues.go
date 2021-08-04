@@ -12,7 +12,7 @@ import (
 // Returns a map of thingID's containing a map of property name:value pairs
 func (pb *OWServerPB) PollValues() (map[string](map[string]interface{}), error) {
 	// tds is a map of ThingID:{attr:value,...}
-	thingValues := make(map[string](map[string]interface{}), 0)
+	thingValues := make(map[string](map[string]interface{}))
 	if pb.edsAPI == nil {
 		err := fmt.Errorf("EDS API not initialized")
 		logrus.Error(err)

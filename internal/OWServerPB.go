@@ -110,10 +110,11 @@ func (pb *OWServerPB) heartbeat() {
 func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig) error {
 	var err error
 	pb.hubConfig = hubConfig
-	pb.nodeInfo = make(map[string]*eds.OneWireNode, 0) // map of node thing info objects by thing ID
+	// map of node thing info objects by thing ID
+	pb.nodeInfo = make(map[string]*eds.OneWireNode)
 	pb.edsAPI = eds.NewEdsAPI(pb.Config.EdsAddress, pb.Config.LoginName, pb.Config.Password)
 	pb.hubClient = hubclient.NewMqttHubPluginClient(PluginID, hubConfig)
-	err = pb.hubClient.Start()
+	err = pb.hubClient.Connect()
 	if err != nil {
 		logrus.Errorf("Protocol Binding for OWServer startup failed")
 		return err
@@ -131,6 +132,7 @@ func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig) error {
 func (pb *OWServerPB) Stop() {
 	pb.running = false
 	logrus.Info("Stopping service OWServer")
+	pb.hubClient.Close()
 }
 
 // Create a new OWServer Protocol Binding service with default configuration

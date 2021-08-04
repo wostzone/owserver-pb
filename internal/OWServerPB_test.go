@@ -64,6 +64,8 @@ func TestPollTDs(t *testing.T) {
 
 	svc := internal.NewOWServerPB()
 	err := hubconfig.LoadPluginConfig(configFolder, testPluginID, &svc.Config, nil)
+	assert.NoError(t, err)
+
 	err = svc.Start(hubConfig)
 	assert.NoError(t, err)
 
@@ -72,7 +74,7 @@ func TestPollTDs(t *testing.T) {
 	// hostPort := fmt.Sprintf("%s:%d", hubConfig.Messenger.Address, hubConfig.Messenger.CertPortMqtt)
 	// caCertFile := path.Join(hubConfig.CertsFolder, certsetup.CaCertFile)
 	testClient := hubclient.NewMqttHubPluginClient("testplugin", hubConfig)
-	err = testClient.Start()
+	err = testClient.Connect()
 	assert.NoError(t, err)
 	testClient.Subscribe("", func(thingID string, msgType string, message []byte, senderID string) {
 		rxMsg = message

@@ -34,7 +34,7 @@ func (pb *OWServerPB) CreateTDFromNode(node *eds.OneWireNode) (thingID string, t
 // PollTDs polls the OWServer hub and converts the result to Thing Definitions
 func (pb *OWServerPB) PollTDs() (map[string]td.ThingTD, error) {
 	// tds is a map of ThingID:ThingTD
-	tds := make(map[string]td.ThingTD, 0)
+	tds := make(map[string]td.ThingTD)
 
 	if pb.edsAPI == nil {
 		err := fmt.Errorf("EDS API not initialized")
