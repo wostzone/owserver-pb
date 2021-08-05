@@ -7,7 +7,7 @@ DIST_FOLDER=./dist
 all: owserver-pb ## Build package with binary distribution and config
 
 
-install:  ## Install the plugin into ~/bin/wost/bin and config
+install:  all ## Install the plugin into ~/bin/wost/bin and config
 	mkdir -p ~/bin/wost/bin
 	mkdir -p ~/bin/wost/config
 	cp $(DIST_FOLDER)/bin/* ~/bin/wost/bin/
