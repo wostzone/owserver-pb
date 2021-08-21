@@ -29,7 +29,7 @@ var mosquittoCmd *exec.Cmd
 func TestMain(m *testing.M) {
 	cwd, _ := os.Getwd()
 	homeFolder = path.Join(cwd, "../test")
-	hubConfig, _ = hubconfig.LoadHubConfig(homeFolder, "plugin1")
+	hubConfig, _ = hubconfig.LoadHubConfig("", homeFolder, "plugin1")
 	configFolder = hubConfig.ConfigFolder
 
 	// testenv creates certificates
