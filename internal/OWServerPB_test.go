@@ -89,6 +89,7 @@ func TestPollTDs(t *testing.T) {
 	assert.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 100)
+	testClient.Close()
 	assert.NotEmpty(t, rxThingID, "Did not receive a message")
 	assert.NotEmpty(t, rxMsg, "Did not receive message data")
 
@@ -117,6 +118,7 @@ func TestPollValues(t *testing.T) {
 	assert.NoError(t, err)
 
 	time.Sleep(3 * time.Second)
+	svc.Stop()
 }
 
 func TestPollInvalidAddress(t *testing.T) {
@@ -131,5 +133,6 @@ func TestPollInvalidAddress(t *testing.T) {
 	tds, err := svc.PollTDs()
 	_ = tds
 	assert.Error(t, err)
+	svc.Stop()
 
 }

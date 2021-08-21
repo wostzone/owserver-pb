@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -34,6 +35,7 @@ type OWServerPB struct {
 	hubClient *hubclient.MqttHubClient
 	nodeInfo  map[string]*eds.OneWireNode // map of node ID to node info and thingID
 	running   bool
+	mu        sync.Mutex
 }
 
 // PublishServiceTD publishes the Thing Description of the service itself
@@ -84,7 +86,14 @@ func (pb *OWServerPB) PublishValues(thingValues map[string](map[string]interface
 func (pb *OWServerPB) heartbeat() {
 	var tdCountDown = 0
 	var valueCountDown = 0
-	for pb.running {
+	for {
+		pb.mu.Lock()
+		isRunning := pb.running
+		pb.mu.Unlock()
+		if !isRunning {
+			break
+		}
+
 		tdCountDown--
 		if tdCountDown <= 0 {
 			tds, err := pb.PollTDs()
@@ -130,9 +139,14 @@ func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig) error {
 
 // Stop the service
 func (pb *OWServerPB) Stop() {
-	pb.running = false
-	logrus.Info("Stopping service OWServer")
-	pb.hubClient.Close()
+	pb.mu.Lock()
+	defer pb.mu.Unlock()
+	if pb.running {
+		pb.running = false
+
+		logrus.Info("Stopping service OWServer")
+		pb.hubClient.Close()
+	}
 }
 
 // Create a new OWServer Protocol Binding service with default configuration
