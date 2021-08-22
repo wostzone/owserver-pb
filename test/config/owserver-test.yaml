@@ -1,14 +1,14 @@
 # Onewire config
 #clientID: "owserver" # optional override of default service client ID
-publishTD: true # publish this TD on the message bus
+#publishTD: true # publish this TD on the message bus
 
 # OWServer gateway configuration
-owserverAddress: 10.3.3.33
-loginName: ""
-password: ""
+#owserverAddress: 192.168.1.101  # default: auto discovery
+#loginName: ""
+#password: ""
 
 # tdInterval in seconds for publishing updates to the TD's, default is 1 hour
-tdInterval: 3600
+#tdInterval: 3600
 
 # Interval to publish updates to property values, default is 60
-valueInterval: 60
+#valueInterval: 60

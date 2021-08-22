@@ -119,6 +119,7 @@ func (pb *OWServerPB) heartbeat() {
 func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig) error {
 	var err error
 	pb.hubConfig = hubConfig
+
 	// map of node thing info objects by thing ID
 	pb.nodeInfo = make(map[string]*eds.OneWireNode)
 	pb.edsAPI = eds.NewEdsAPI(pb.Config.EdsAddress, pb.Config.LoginName, pb.Config.Password)

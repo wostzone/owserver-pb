@@ -14,7 +14,7 @@ install:  all ## Install the plugin into ~/bin/wost/bin and config
 	cp -n $(DIST_FOLDER)/config/* ~/bin/wost/config/
 
 test: .PHONY ## Run tests (todo fix this)
-		go test -v ./...
+		go test -v -p 1 -failfast ./...
 
 clean: ## Clean distribution files
 	go clean -cache

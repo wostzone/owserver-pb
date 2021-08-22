@@ -10,7 +10,14 @@ import (
 )
 
 // Some tests require a living OWServer
-const edsAddress = "10.3.3.33"
+const edsAddress = ""
+
+func TestDiscover(t *testing.T) {
+	edsAPI := eds.NewEdsAPI("", "", "")
+	addr, err := edsAPI.Discover()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, addr, "EDS OWserver V2 not found")
+}
 
 // Read EDS test data from file
 func TestReadEdsFromFile(t *testing.T) {
@@ -35,6 +42,7 @@ func TestReadEdsFromInvalidFile(t *testing.T) {
 // NOTE: This requires a live hub on the 'edsAddress'
 func TestReadEdsFromHub(t *testing.T) {
 
+	// NOTE: This requires a live hub on the 'edsAddress'
 	edsAPI := eds.NewEdsAPI(edsAddress, "", "")
 	rootNode, err := edsAPI.ReadEds()
 

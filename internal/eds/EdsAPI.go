@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -116,7 +117,7 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 		// ID:          xmlNode.Attrs["ROMId"],
 		Name:        xmlNode.XMLName.Local,
 		Description: xmlNode.Description,
-		Attr:        make(map[string]OneWireAttr, 0),
+		Attr:        make(map[string]OneWireAttr),
 		DeviceType:  vocab.DeviceTypeGateway,
 	}
 	owNodeList = append(owNodeList, &owNode)
@@ -192,7 +193,12 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 // ReadEds reads EDS hub and return the result as an XML node
 // If edsAPI.address starts with file:// then read from file, otherwise from address
 func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
-	if strings.HasPrefix(edsAPI.address, "file://") {
+	if edsAPI.address == "" {
+		_, err := edsAPI.Discover()
+		if err != nil {
+			return nil, err
+		}
+	} else if strings.HasPrefix(edsAPI.address, "file://") {
 		filename := edsAPI.address[7:]
 		buffer, err := ioutil.ReadFile(filename)
 		if err != nil {
@@ -204,7 +210,8 @@ func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
 	}
 	// not a file, continue with http request
 	edsURL := "http://" + edsAPI.address + "/details.xml"
-	req, err := http.NewRequest("GET", edsURL, nil)
+	req, _ := http.NewRequest("GET", edsURL, nil)
+
 	req.SetBasicAuth(edsAPI.loginName, edsAPI.password)
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -230,7 +237,54 @@ func (n *XMLNode) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return d.DecodeElement((*node)(n), &start)
 }
 
+// Discover any EDS OWServer ENet-2 on the local network
+// This uses a UDP Broadcast on port 30303 as stated in the manual
+// If found, this sets the service address for further use
+// Returns the address or an error if not found
+func (edsAPI *EdsAPI) Discover() (addr string, err error) {
+
+	// listen
+	pc, err := net.ListenPacket("udp4", ":30303")
+	if err != nil {
+		return "", err
+	}
+	defer pc.Close()
+
+	addr2, err := net.ResolveUDPAddr("udp4", "255.255.255.255:30303")
+	if err != nil {
+		return "", err
+	}
+
+	_, err = pc.WriteTo([]byte("D"), addr2)
+	if err != nil {
+		return "", err
+	}
+
+	buf := make([]byte, 1024)
+	// receive 2 messages, first the broadcast, followed by the response, if there is one
+	// wait 3 seconds before giving up
+	for {
+		pc.SetReadDeadline(time.Now().Add(3 * time.Second))
+		n, remoteAddr, err := pc.ReadFrom(buf)
+		if err != nil {
+			return "", err
+		} else if n > 1 {
+			switch rxAddr := remoteAddr.(type) {
+			case *net.UDPAddr:
+				addr = rxAddr.IP.String()
+				edsAPI.address = addr
+				logrus.Infof("EdsAPI.Discover. Found at %s: %s", addr, buf[:n])
+				return addr, nil
+			}
+		}
+	}
+
+}
+
 // NewEdsAPI creates a new NewEdsAPI instance
+//  address is optional to override the discovery
+//  loginName if needed, "" if not needed
+//  password if needed, "" if not needed
 func NewEdsAPI(address string, loginName string, password string) *EdsAPI {
 	edsAPI := &EdsAPI{
 		address:   address,
