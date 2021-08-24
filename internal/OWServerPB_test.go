@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	configFolder = hubConfig.ConfigFolder
 
 	// testenv creates certificates
-	mosquittoCmd = testenv.Setup(homeFolder, hubConfig.MqttCertPort)
+	mosquittoCmd = testenv.Setup(homeFolder, hubConfig.MqttPortCert, hubConfig.MqttPortWS)
 	if mosquittoCmd == nil {
 		logrus.Fatalf("Unable to setup mosquitto")
 	}
