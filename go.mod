@@ -11,4 +11,4 @@ require (
 )
 
 // Until wostlib is stable
-replace github.com/wostzone/wostlib-go => ../wostlib-go
+replace github.com/wostzone/wostlib-go => ../hub/core/wostlib-go
