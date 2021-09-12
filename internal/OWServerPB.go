@@ -1,16 +1,17 @@
 package internal
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/wostzone/hubclient-go/pkg/mqttclient"
+	"github.com/wostzone/hubclient-go/pkg/td"
+	"github.com/wostzone/hubclient-go/pkg/vocab"
 	"github.com/wostzone/owserver-pb/internal/eds"
-	"github.com/wostzone/wostlib-go/pkg/hubclient"
-	"github.com/wostzone/wostlib-go/pkg/hubconfig"
-	"github.com/wostzone/wostlib-go/pkg/td"
-	"github.com/wostzone/wostlib-go/pkg/vocab"
 )
 
 // PluginID is the default ID of the WoST Logger plugin
@@ -29,13 +30,17 @@ type PluginConfig struct {
 
 // OWServerPB is a  hub protocol binding plugin for capturing 1-wire OWServer V2 Data
 type OWServerPB struct {
-	Config    PluginConfig         // options for accessing EDS OWServer
-	edsAPI    *eds.EdsAPI          // EDS device access
-	hubConfig *hubconfig.HubConfig // hub based configuration
-	hubClient *hubclient.MqttHubClient
-	nodeInfo  map[string]*eds.OneWireNode // map of node ID to node info and thingID
-	running   bool
-	mu        sync.Mutex
+	Config PluginConfig // options for accessing EDS OWServer
+	edsAPI *eds.EdsAPI  // EDS device access
+	// clientID     string
+	caCert       *x509.Certificate
+	pluginCert   *tls.Certificate
+	mqttHostPort string // MQTT broker address:port
+	hubClient    *mqttclient.MqttHubClient
+	nodeInfo     map[string]*eds.OneWireNode // map of node ID to node info and thingID
+	running      bool
+	mu           sync.Mutex
+	zone         string // the zone of the plugin publications, default is local
 }
 
 // PublishServiceTD publishes the Thing Description of the service itself
@@ -44,7 +49,7 @@ func (pb *OWServerPB) PublishServiceTD() {
 		return
 	}
 	deviceType := vocab.DeviceTypeService
-	thingID := td.CreatePublisherThingID(pb.hubConfig.Zone, "hub", pb.Config.ClientID, deviceType)
+	thingID := td.CreatePublisherThingID(pb.zone, "hub", pb.Config.ClientID, deviceType)
 	logrus.Infof("Publishing this service TD %s", thingID)
 	thingTD := td.CreateTD(thingID, deviceType)
 	// Include the service configuration properties
@@ -114,17 +119,16 @@ func (pb *OWServerPB) heartbeat() {
 	}
 }
 
-// Start connects to the hub internal message bus and starts polling
-// the owserver.
-func (pb *OWServerPB) Start(hubConfig *hubconfig.HubConfig) error {
+// Start connects to the hub message bus and starts polling the owserver.
+func (pb *OWServerPB) Start() error {
 	var err error
-	pb.hubConfig = hubConfig
 
 	// map of node thing info objects by thing ID
 	pb.nodeInfo = make(map[string]*eds.OneWireNode)
 	pb.edsAPI = eds.NewEdsAPI(pb.Config.EdsAddress, pb.Config.LoginName, pb.Config.Password)
-	pb.hubClient = hubclient.NewMqttHubPluginClient(PluginID, hubConfig)
-	err = pb.hubClient.Connect()
+
+	pb.hubClient = mqttclient.NewMqttHubClient(pb.Config.ClientID, pb.caCert)
+	err = pb.hubClient.ConnectWithClientCert(pb.mqttHostPort, pb.pluginCert)
 	if err != nil {
 		logrus.Errorf("Protocol Binding for OWServer startup failed")
 		return err
@@ -146,15 +150,24 @@ func (pb *OWServerPB) Stop() {
 		pb.running = false
 
 		logrus.Info("Stopping service OWServer")
+		// FIXME, wait until discovery has completed if running
+		time.Sleep(time.Second)
+
 		pb.hubClient.Close()
 	}
 }
 
 // Create a new OWServer Protocol Binding service with default configuration
-func NewOWServerPB() *OWServerPB {
-	pb := &OWServerPB{}
+func NewOWServerPB(clientID, mqttHostPort string, caCert *x509.Certificate, pluginCert *tls.Certificate) *OWServerPB {
+	// these are from hub configuration
+	pb := &OWServerPB{
+		mqttHostPort: mqttHostPort,
+		caCert:       caCert,
+		pluginCert:   pluginCert,
+		zone:         "local",
+	}
 	pb.Config = PluginConfig{
-		ClientID:      PluginID,
+		ClientID:      clientID,
 		PublishTD:     false,
 		TDInterval:    3600,
 		ValueInterval: 60,

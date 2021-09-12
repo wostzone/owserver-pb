@@ -8,10 +8,11 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/wostlib-go/pkg/vocab"
+	"github.com/wostzone/hubclient-go/pkg/vocab"
 )
 
 // family to device type. See also: http://owfs.sourceforge.net/simple_family.html
@@ -61,9 +62,11 @@ var UnitNameVocab = map[string]string{
 
 // EdsAPI EDS device API properties and methods
 type EdsAPI struct {
-	address   string // EDS (IP) address or filename (file://./path/to/name.xml)
-	loginName string // Basic Auth login name
-	password  string // Basic Auth password
+	address         string     // EDS (IP) address or filename (file://./path/to/name.xml)
+	loginName       string     // Basic Auth login name
+	password        string     // Basic Auth password
+	discoTimeoutSec int        // EDS OWServer discovery timeout
+	readMutex       sync.Mutex // prevent concurrent discovery
 }
 
 // XMLNode XML parsing node. Pure magic...
@@ -192,9 +195,13 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 
 // ReadEds reads EDS hub and return the result as an XML node
 // If edsAPI.address starts with file:// then read from file, otherwise from address
+// The timeout for HTTP access is 1 second
 func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
+	// don't discover or read concurrently
+	edsAPI.readMutex.Lock()
+	defer edsAPI.readMutex.Unlock()
 	if edsAPI.address == "" {
-		_, err := edsAPI.Discover()
+		edsAPI.address, err = edsAPI.Discover()
 		if err != nil {
 			return nil, err
 		}
@@ -213,7 +220,7 @@ func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
 	req, _ := http.NewRequest("GET", edsURL, nil)
 
 	req.SetBasicAuth(edsAPI.loginName, edsAPI.password)
-	client := &http.Client{}
+	client := &http.Client{Timeout: time.Second}
 	resp, err := client.Do(req)
 
 	// resp, err := http.Get(edsURL)
@@ -237,12 +244,12 @@ func (n *XMLNode) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return d.DecodeElement((*node)(n), &start)
 }
 
-// Discover any EDS OWServer ENet-2 on the local network
+// Discover any EDS OWServer ENet-2 on the local network for 3 seconds
 // This uses a UDP Broadcast on port 30303 as stated in the manual
 // If found, this sets the service address for further use
 // Returns the address or an error if not found
 func (edsAPI *EdsAPI) Discover() (addr string, err error) {
-
+	logrus.Infof("Starting discovery")
 	// listen
 	pc, err := net.ListenPacket("udp4", ":30303")
 	if err != nil {
@@ -264,15 +271,15 @@ func (edsAPI *EdsAPI) Discover() (addr string, err error) {
 	// receive 2 messages, first the broadcast, followed by the response, if there is one
 	// wait 3 seconds before giving up
 	for {
-		pc.SetReadDeadline(time.Now().Add(3 * time.Second))
+		pc.SetReadDeadline(time.Now().Add(time.Second * time.Duration(edsAPI.discoTimeoutSec)))
 		n, remoteAddr, err := pc.ReadFrom(buf)
 		if err != nil {
+			logrus.Infof("Discovery ended without results")
 			return "", err
 		} else if n > 1 {
 			switch rxAddr := remoteAddr.(type) {
 			case *net.UDPAddr:
 				addr = rxAddr.IP.String()
-				edsAPI.address = addr
 				logrus.Infof("EdsAPI.Discover. Found at %s: %s", addr, buf[:n])
 				return addr, nil
 			}
@@ -287,9 +294,10 @@ func (edsAPI *EdsAPI) Discover() (addr string, err error) {
 //  password if needed, "" if not needed
 func NewEdsAPI(address string, loginName string, password string) *EdsAPI {
 	edsAPI := &EdsAPI{
-		address:   address,
-		loginName: loginName,
-		password:  password,
+		address:         address,
+		loginName:       loginName,
+		password:        password,
+		discoTimeoutSec: 3, // discovery timeout
 	}
 	return edsAPI
 }

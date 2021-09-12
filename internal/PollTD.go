@@ -4,14 +4,14 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+	"github.com/wostzone/hubclient-go/pkg/td"
+	"github.com/wostzone/hubclient-go/pkg/vocab"
 	"github.com/wostzone/owserver-pb/internal/eds"
-	"github.com/wostzone/wostlib-go/pkg/td"
-	"github.com/wostzone/wostlib-go/pkg/vocab"
 )
 
 // CreateTDFromNode converts the node into a TD
 func (pb *OWServerPB) CreateTDFromNode(node *eds.OneWireNode) (thingID string, thingTD td.ThingTD) {
-	thingID = td.CreatePublisherThingID(pb.hubConfig.Zone, PluginID, node.NodeID, node.DeviceType)
+	thingID = td.CreatePublisherThingID(pb.zone, PluginID, node.NodeID, node.DeviceType)
 	thingTD = td.CreateTD(thingID, vocab.DeviceTypeGateway)
 	td.SetThingDescription(thingTD, node.Name, node.Description)
 

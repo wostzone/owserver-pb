@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/wostlib-go/pkg/td"
+	"github.com/wostzone/hubclient-go/pkg/td"
 )
 
 // PollValues polls the OWServer hub for Thing property values
@@ -28,7 +28,7 @@ func (pb *OWServerPB) PollValues() (map[string](map[string]interface{}), error) 
 	}
 	nodeList := pb.edsAPI.ParseOneWireNodes(rootNode, latency, true)
 	for _, node := range nodeList {
-		thingID := td.CreatePublisherThingID(pb.hubConfig.Zone, PluginID, node.NodeID, node.DeviceType)
+		thingID := td.CreatePublisherThingID(pb.zone, PluginID, node.NodeID, node.DeviceType)
 
 		propValues := make(map[string]interface{})
 		for name, attr := range node.Attr {

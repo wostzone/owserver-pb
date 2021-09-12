@@ -1,26 +1,35 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/sirupsen/logrus"
+	"github.com/wostzone/hubclient-go/pkg/config"
+	"github.com/wostzone/hubserve-go/pkg/proc"
 	"github.com/wostzone/owserver-pb/internal"
-	"github.com/wostzone/wostlib-go/pkg/hubclient"
-	"github.com/wostzone/wostlib-go/pkg/hubconfig"
 )
 
 // Main entry to WoST protocol adapter for owserver-v2
 // This setup the configuration from file and commandline parameters and launches the service
 func main() {
-	svc := internal.NewOWServerPB()
-	hubConfig, err := hubconfig.LoadCommandlineConfig("", internal.PluginID, &svc.Config)
-
-	err = svc.Start(hubConfig)
+	pluginConfig := internal.PluginConfig{}
+	hubConfig, err := config.LoadAllConfig(os.Args, "", internal.PluginID, &pluginConfig)
 	if err != nil {
-		logrus.Errorf("Logger: Failed to start")
+		logrus.Errorf("%s: Failed to configure: %s", internal.PluginID, err)
 		os.Exit(1)
 	}
-	hubclient.WaitForSignal()
+
+	mqttHostPort := fmt.Sprintf("%s:%d", hubConfig.MqttAddress, hubConfig.MqttPortCert)
+	svc := internal.NewOWServerPB(pluginConfig.ClientID,
+		mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+
+	err = svc.Start()
+	if err != nil {
+		logrus.Errorf("%s: Failed to start: %s", internal.PluginID, err)
+		os.Exit(1)
+	}
+	proc.WaitForSignal()
 	svc.Stop()
 	os.Exit(0)
 }
