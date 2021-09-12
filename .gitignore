@@ -18,9 +18,6 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
-dist/certs/*
 dist/bin/*
-dist/arm/*
-dist/logs/*
-*.crt
-*.key
+*.pem
+mosquitto-testsetup.conf
