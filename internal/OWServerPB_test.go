@@ -37,7 +37,6 @@ func TestMain(m *testing.M) {
 	cwd, _ := os.Getwd()
 	homeFolder = path.Join(cwd, "../test")
 	certsFolder := path.Join(homeFolder, config.DefaultCertsFolder)
-	// generate test certificates and use plugin cert as client cert
 	testCerts := testenv.CreateCertBundle()
 	testenv.SaveCerts(&testCerts, certsFolder)
 

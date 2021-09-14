@@ -6,7 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/wostzone/hubclient-go/pkg/config"
-	"github.com/wostzone/hubserve-go/pkg/proc"
+	"github.com/wostzone/hubclient-go/pkg/proc"
 	"github.com/wostzone/owserver-pb/internal"
 )
 
