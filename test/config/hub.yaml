@@ -2,9 +2,9 @@
 
 # Message bus server
 # mqttAddress: "127.0.0.1" # hostname:port or ip:port to listen on of message bus
-mqttPortCert: 33100 # certificate based auth over MQTT/TLS
-mqttPortUnpw: 33101 # certificate based auth over MQTT/TLS
-mqttPortWS: 33102 # username password auth over WebSocket/TLS
+mqttPortUnpw: 9883 # password based auth over MQTT/TLS
+mqttPortCert: 9884 # certificate based auth over MQTT/TLS
+mqttPortWS: 9885 # username password auth over WebSocket/TLS
 
 # Logging
 logLevel: "info" # debug, info, warning, error. Default is warning
