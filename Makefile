@@ -30,6 +30,10 @@ owserver-pb: ## Build owserver-pb plugin
 	go build -o $(DIST_FOLDER)/bin/$@ ./cmd/owserver-pb/main.go
 	@echo "> SUCCESS. Plugin '$@' can be found at $(DIST_FOLDER)/bin/$@"
 
+upgrade: ## Upgrade packages (use with care)
+	go get -u all
+	go mod tidy
+
 help: ## Show this help
 		@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
