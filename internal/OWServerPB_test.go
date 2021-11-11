@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/wostzone/hubclient-go/pkg/config"
-	"github.com/wostzone/hubclient-go/pkg/mqttclient"
-	"github.com/wostzone/hubclient-go/pkg/testenv"
+	"github.com/wostzone/hub/lib/client/pkg/config"
+	"github.com/wostzone/hub/lib/client/pkg/mqttclient"
+	"github.com/wostzone/hub/lib/client/pkg/testenv"
 	"github.com/wostzone/owserver-pb/internal"
 )
 

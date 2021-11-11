@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hubclient-go/pkg/vocab"
+	"github.com/wostzone/hub/lib/client/pkg/vocab"
 )
 
 // family to device type. See also: http://owfs.sourceforge.net/simple_family.html

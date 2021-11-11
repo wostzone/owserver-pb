@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hubclient-go/pkg/config"
-	"github.com/wostzone/hubclient-go/pkg/proc"
+	"github.com/wostzone/hub/lib/client/pkg/config"
+	"github.com/wostzone/hub/lib/client/pkg/proc"
 	"github.com/wostzone/owserver-pb/internal"
 )
 
