@@ -20,7 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	mqttHostPort := fmt.Sprintf("%s:%d", hubConfig.MqttAddress, hubConfig.MqttPortCert)
+	mqttHostPort := fmt.Sprintf("%s:%d", hubConfig.Address, hubConfig.MqttPortCert)
 	svc := internal.NewOWServerPB(pluginConfig.ClientID,
 		mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
 

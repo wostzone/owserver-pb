@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 	// load the plugin config with client cert
 	hubConfig = config.CreateDefaultHubConfig(homeFolder)
 	config.LoadHubConfig("", internal.PluginID, hubConfig)
-	mqttHostPort = fmt.Sprintf("%s:%d", hubConfig.MqttAddress, hubConfig.MqttPortCert)
+	mqttHostPort = fmt.Sprintf("%s:%d", hubConfig.Address, hubConfig.MqttPortCert)
 
 	// run the test mosquitto server. Use only certificate authentication
 	mosquittoCmd, _ = testenv.StartMosquitto(hubConfig.ConfigFolder, hubConfig.CertsFolder, &testCerts)
