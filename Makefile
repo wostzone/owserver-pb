@@ -9,8 +9,8 @@ all: owserver-pb ## Build package with binary distribution and config
 
 
 install:  all ## Install the plugin into ~/bin/wost/bin and config
-	mkdir -p ~/bin/wost/bin
-	mkdir -p ~/bin/wost/config
+	mkdir -p $(INSTALL_HOME)/bin
+	mkdir -p $(INSTALL_HOME)/config
 	cp $(DIST_FOLDER)/bin/* $(INSTALL_HOME)/bin/
 	cp -n $(DIST_FOLDER)/config/* $(INSTALL_HOME)/config/
 
