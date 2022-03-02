@@ -12,7 +12,7 @@ import (
 // CreateTDFromNode converts the node into a TD
 func (pb *OWServerPB) CreateTDFromNode(node *eds.OneWireNode) (thingID string, thingTD td.ThingTD) {
 	thingID = td.CreatePublisherThingID(pb.zone, PluginID, node.NodeID, node.DeviceType)
-	thingTD = td.CreateTD(thingID, vocab.DeviceTypeGateway)
+	thingTD = td.CreateTD(thingID, node.Name, vocab.DeviceTypeGateway)
 	td.SetThingDescription(thingTD, node.Name, node.Description)
 
 	// Map node attribute to Thing properties
@@ -53,8 +53,8 @@ func (pb *OWServerPB) PollTDs() (map[string]td.ThingTD, error) {
 	nodeList := pb.edsAPI.ParseOneWireNodes(rootNode, 0, true)
 
 	for _, node := range nodeList {
-		thingID, td := pb.CreateTDFromNode(node)
-		tds[thingID] = td
+		thingID, thingDoc := pb.CreateTDFromNode(node)
+		tds[thingID] = thingDoc
 	}
 	// // td.SetThingErrorStatus(pb.gatewayTD, "")
 	// gwNodeID, gwThingID, gwTD := pb.CreateGatewayTD(nodeList[0])
