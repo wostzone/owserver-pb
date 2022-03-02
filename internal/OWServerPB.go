@@ -51,7 +51,7 @@ func (pb *OWServerPB) PublishServiceTD() {
 	deviceType := vocab.DeviceTypeService
 	thingID := td.CreatePublisherThingID(pb.zone, "hub", pb.Config.ClientID, deviceType)
 	logrus.Infof("Publishing this service TD %s", thingID)
-	thingTD := td.CreateTD(thingID, deviceType)
+	thingTD := td.CreateTD(thingID, "OWServer Service", deviceType)
 	// Include the service configuration properties
 	prop := td.CreateProperty(vocab.PropNameAddress, "Gateway Address", vocab.PropertyTypeAttr)
 	td.SetPropertyDataTypeString(prop, 0, 0)
@@ -62,7 +62,7 @@ func (pb *OWServerPB) PublishServiceTD() {
 	pb.hubClient.PublishTD(thingID, thingTD)
 }
 
-// PublishThingsTD publishes the TD of Things
+// PublishTDs publishes the TD of Things
 func (pb *OWServerPB) PublishTDs(tds map[string]td.ThingTD) error {
 	var err error
 	for thingID, td := range tds {
@@ -74,7 +74,7 @@ func (pb *OWServerPB) PublishTDs(tds map[string]td.ThingTD) error {
 	return nil
 }
 
-// PublishThingsTD publishes the TD of Things
+// PublishValues publishes the TD of Things
 //
 func (pb *OWServerPB) PublishValues(thingValues map[string](map[string]interface{})) error {
 	var err error
@@ -157,7 +157,7 @@ func (pb *OWServerPB) Stop() {
 	}
 }
 
-// Create a new OWServer Protocol Binding service with default configuration
+// NewOWServerPB creates a new OWServer Protocol Binding service with default configuration
 func NewOWServerPB(clientID, mqttHostPort string, caCert *x509.Certificate, pluginCert *tls.Certificate) *OWServerPB {
 	// these are from hub configuration
 	pb := &OWServerPB{
