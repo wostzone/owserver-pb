@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../hub/.idea/hub.iml" filepath="$PROJECT_DIR$/../hub/.idea/hub.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/owserver-pb.iml" filepath="$PROJECT_DIR$/.idea/owserver-pb.iml" />
     </modules>
   </component>

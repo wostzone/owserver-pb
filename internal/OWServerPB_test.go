@@ -2,6 +2,9 @@ package internal_test
 
 import (
 	"fmt"
+	"github.com/wostzone/hub/lib/client/pkg/mqttbinding"
+	"github.com/wostzone/hub/lib/client/pkg/thing"
+	"github.com/wostzone/hub/lib/client/pkg/vocab"
 	"os"
 	"os/exec"
 	"path"
@@ -26,17 +29,20 @@ const testPluginID = "owserver-test"
 var mqttHostPort string
 
 var hubConfig *config.HubConfig
+var owsConfig internal.OWServerPBConfig
 
 // var testCerts testenv.TestCerts
-
+var owserverSimulation string // simulation file
 var mosquittoCmd *exec.Cmd
 
 // TestMain run mosquitto and use the project test folder as the home folder.
+// All tests are run using the simulation file.
 func TestMain(m *testing.M) {
 	// setup environment
 	cwd, _ := os.Getwd()
 	homeFolder = path.Join(cwd, "../test")
 	certsFolder := path.Join(homeFolder, config.DefaultCertsFolder)
+	owserverSimulation = "file://" + path.Join(homeFolder, "owserver-details.xml")
 	testCerts := testenv.CreateCertBundle()
 	testenv.SaveCerts(&testCerts, certsFolder)
 
@@ -44,6 +50,8 @@ func TestMain(m *testing.M) {
 	hubConfig = config.CreateDefaultHubConfig(homeFolder)
 	config.LoadHubConfig("", internal.PluginID, hubConfig)
 	mqttHostPort = fmt.Sprintf("%s:%d", hubConfig.Address, hubConfig.MqttPortCert)
+	owsConfig.ClientID = testPluginID
+	owsConfig.EdsAddress = owserverSimulation
 
 	// run the test mosquitto server. Use only certificate authentication
 	mosquittoCmd, _ = testenv.StartMosquitto(hubConfig.ConfigFolder, hubConfig.CertsFolder, &testCerts)
@@ -62,77 +70,95 @@ func TestMain(m *testing.M) {
 
 func TestStartStop(t *testing.T) {
 	logrus.Infof("--- TestStartStop ---")
+	var rxMsg []byte
+	var rxTopic string
 
-	// svcConfig := internal.PluginConfig{}
-	// hubConfig, err := config.LoadConfig(nil, homeFolder, "plugin", &svcConfig)
-	// assert.NoError(t, err)
+	// listen for TDs
+	testClient := mqttclient.NewMqttClient(testPluginID+"-client", hubConfig.CaCert, 0)
+	err := testClient.ConnectWithClientCert(mqttHostPort, hubConfig.PluginCert)
+	require.NoError(t, err)
 
-	svc := internal.NewOWServerPB(testPluginID, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	serviceThingID := thing.CreatePublisherID(
+		"", owsConfig.ClientID, owsConfig.ClientID, vocab.DeviceTypeService)
+	serviceTopic := mqttbinding.CreateTopic(serviceThingID, mqttbinding.TopicTypeTD)
 
-	err := svc.Start()
+	testClient.Subscribe(serviceTopic, func(topic string, message []byte) {
+		logrus.Infof("TestStartStop: received message for thingID: %s", topic)
+		rxMsg = message
+		rxTopic = topic
+	})
+	// startup
+	svc := internal.NewOWServerPB(owsConfig, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	svc.Config.PublishTD = true
+	err = svc.Start()
 	assert.NoError(t, err)
+	time.Sleep(time.Second)
+
+	// This should publish the Thing of the service
+	assert.NotEmpty(t, rxTopic, "Did not receive a message")
+	assert.NotEmpty(t, rxMsg, "Did not receive message data")
+
 	svc.Stop()
 }
 
 func TestPollTDs(t *testing.T) {
-	var rxMsg []byte
-	var rxThingID string
+	var tdCount int = 0
 
-	logrus.Infof("--- TestPollOnce ---")
-
-	svc := internal.NewOWServerPB(testPluginID, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	logrus.Infof("--- TestPollTDs ---")
+	svc := internal.NewOWServerPB(owsConfig, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
 	assert.NotNil(t, svc)
 
-	err := svc.Start()
+	// Count the number of received TDs
+	testClient := mqttclient.NewMqttClient(testPluginID+"-client", hubConfig.CaCert, 0)
+	err := testClient.ConnectWithClientCert(mqttHostPort, hubConfig.PluginCert)
 	assert.NoError(t, err)
-
-	// listener should receive the TD
-	// FIXME: consumer connection port should not be hidden
-	// hostPort := fmt.Sprintf("%s:%d", hubConfig.Messenger.Address, hubConfig.Messenger.CertPortMqtt)
-	// caCertFile := path.Join(hubConfig.CertsFolder, certsetup.CaCertFile)
-	testClient := mqttclient.NewMqttHubClient("testplugin", hubConfig.CaCert)
-	err = testClient.ConnectWithClientCert(mqttHostPort, hubConfig.PluginCert)
-	assert.NoError(t, err)
-	testClient.Subscribe("", func(thingID string, msgType string, message []byte, senderID string) {
-		rxMsg = message
-		rxThingID = thingID
+	tdTopics := mqttbinding.CreateTopic("+", mqttbinding.TopicTypeTD)
+	testClient.Subscribe(tdTopics, func(thingID string, message []byte) {
+		tdCount++
 	})
 	time.Sleep(time.Second)
 
-	// svc.Start(gwConfig, pluginConfig)
-	tds, err := svc.PollTDs()
-	assert.NoError(t, err)
-	err = svc.PublishTDs(tds)
+	// start the service which publishes TDs
+	err = svc.Start()
 	assert.NoError(t, err)
 
-	time.Sleep(time.Millisecond * 100)
+	err = svc.PollTDs()
+	assert.NoError(t, err)
+	//err = svc.PublishTDs(tds)
+	//assert.NoError(t, err)
+
+	time.Sleep(time.Millisecond * 500)
 	testClient.Close()
-	assert.NotEmpty(t, rxThingID, "Did not receive a message")
-	assert.NotEmpty(t, rxMsg, "Did not receive message data")
+	// the simulation file contains 3 things. The service is 1 thing.
+	assert.GreaterOrEqual(t, 4, tdCount)
 
 	svc.Stop()
 }
 
 func TestPollValues(t *testing.T) {
 	logrus.Infof("--- TestPollOnce ---")
+	var eventCount int = 0
 
-	svc := internal.NewOWServerPB(testPluginID, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
 	assert.NotNil(t, svc)
 
-	err := svc.Start()
+	// Count the number of received value events
+	testClient := mqttclient.NewMqttClient(testPluginID+"-client", hubConfig.CaCert, 0)
+	err := testClient.ConnectWithClientCert(mqttHostPort, hubConfig.PluginCert)
 	assert.NoError(t, err)
+	eventTopics := mqttbinding.CreateTopic("+", mqttbinding.TopicSubjectProperties)
+	testClient.Subscribe(eventTopics, func(thingID string, message []byte) {
+		eventCount++
+	})
+	time.Sleep(time.Second)
 
-	// Get and publish the Things
-	tds, err := svc.PollTDs()
-	require.NoError(t, err)
-	err = svc.PublishTDs(tds)
+	// start the heartbeat that publishes changes to property values
+	err = svc.Start()
 	assert.NoError(t, err)
+	time.Sleep(time.Second)
 
-	// Get and publish Thing values
-	values, err := svc.PollValues()
-	require.NoError(t, err)
-	err = svc.PublishValues(values)
-	assert.NoError(t, err)
+	// the simulation file contains 3 things + service is 4 events
+	assert.Equal(t, 4, eventCount)
 
 	svc.Stop()
 }
@@ -140,10 +166,10 @@ func TestPollValues(t *testing.T) {
 func TestPollValuesNotInitialized(t *testing.T) {
 	logrus.Infof("--- TestPollValuesNotInitialized ---")
 
-	svc := internal.NewOWServerPB(testPluginID, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
 	_, err := svc.PollValues()
 	require.Error(t, err)
-	_, err = svc.PollTDs()
+	err = svc.PollTDs()
 	require.Error(t, err)
 }
 
@@ -158,18 +184,17 @@ func TestPollValuesNotInitialized(t *testing.T) {
 // 	_, err = svc.PollValues()
 // 	require.Error(t, err)
 // }
-func TestPollInvalidAddress(t *testing.T) {
-	logrus.Infof("--- TestPollInvalidAddress ---")
+func TestPollInvalidEDSAddress(t *testing.T) {
+	logrus.Infof("--- TestPollInvalidEDSAddress ---")
 
-	svc := internal.NewOWServerPB(testPluginID, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	owsConfig.EdsAddress = "http://invalidAddress/"
+	svc := internal.NewOWServerPB(owsConfig, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
 	assert.NotNil(t, svc)
 
-	svc.Config.EdsAddress = "http://invalidAddress/"
 	err := svc.Start()
 	assert.NoError(t, err)
 
-	tds, err := svc.PollTDs()
-	_ = tds
+	err = svc.PollTDs()
 	assert.Error(t, err)
 	svc.Stop()
 
@@ -178,7 +203,8 @@ func TestPollInvalidAddress(t *testing.T) {
 func TestPublishServiceTD(t *testing.T) {
 	logrus.Infof("--- TestPublishServiceTD ---")
 
-	svc := internal.NewOWServerPB(testPluginID, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig, mqttHostPort,
+		hubConfig.CaCert, hubConfig.PluginCert)
 	svc.Config.PublishTD = true
 	err := svc.Start()
 	assert.NoError(t, err)
@@ -190,12 +216,13 @@ func TestPublishServiceTD(t *testing.T) {
 func TestPublishServiceTDBadAddress(t *testing.T) {
 	logrus.Infof("--- TestPublishServiceTD ---")
 
-	svc := internal.NewOWServerPB(testPluginID, "badmqtt:port", hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig, "badmqtt:port",
+		hubConfig.CaCert, hubConfig.PluginCert)
 	svc.Config.PublishTD = true
 	err := svc.Start()
 	assert.Error(t, err)
 	values, err := svc.PollValues()
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	err = svc.PublishValues(values)
 	assert.Error(t, err)
 	svc.Stop()

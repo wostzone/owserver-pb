@@ -13,7 +13,7 @@ import (
 // Main entry to WoST protocol adapter for owserver-v2
 // This setup the configuration from file and commandline parameters and launches the service
 func main() {
-	pluginConfig := internal.PluginConfig{}
+	pluginConfig := internal.OWServerPBConfig{}
 	hubConfig, err := config.LoadAllConfig(os.Args, "", internal.PluginID, &pluginConfig)
 	if err != nil {
 		logrus.Errorf("%s: Failed to configure: %s", internal.PluginID, err)

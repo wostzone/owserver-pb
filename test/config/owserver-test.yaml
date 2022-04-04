@@ -1,6 +1,8 @@
-# Onewire config
-#clientID: "owserver" # optional override of default service client ID
-#publishTD: true # publish this TD on the message bus
+# Onewire protocol binding service config
+
+#clientID: "owserver-1" # optional override in case of multiple instances
+
+#publishTD: true # publish the TD of this service itself on the message bus
 
 # OWServer gateway configuration
 #owserverAddress: 192.168.1.101  # default: auto discovery
@@ -10,5 +12,6 @@
 # tdInterval in seconds for publishing updates to the TD's, default is 1 hour
 #tdInterval: 3600
 
-# Interval to publish updates to property values, default is 60
+# Polling is used to query the owserver for updated values.
+# This sets the polling Interval to retrieve updates to property values, default is 60
 #valueInterval: 60

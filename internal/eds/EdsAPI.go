@@ -31,7 +31,7 @@ var AttrVocab = map[string]string{
 	"HostName":   vocab.PropNameHostname,
 }
 
-// sensorTypeMap maps OWServer sensor names to IoT vocabulary
+// SensorTypeVocab maps OWServer sensor names to IoT vocabulary
 var SensorTypeVocab = map[string]struct {
 	name     string
 	dataType string
@@ -48,7 +48,7 @@ var SensorTypeVocab = map[string]struct {
 	"Temperature": {name: vocab.PropNameTemperature, dataType: vocab.WoTDataTypeNumber},
 }
 
-// unitNameMap maps OWServer unit names to IoT vocabulary
+// UnitNameVocab maps OWServer unit names to IoT vocabulary
 var UnitNameVocab = map[string]string{
 	"PercentRelativeHumidity": vocab.UnitNamePercent,
 	"Millibars":               vocab.UnitNameMillibar,
@@ -82,14 +82,16 @@ type XMLNode struct {
 	Units       string `xml:"Units,attr"`
 }
 
-// OneWireNode with info on each node
+// OneWireAttr with info on each node attribute
 type OneWireAttr struct {
-	Name         string
-	Unit         string
-	Writable     bool
-	Value        string
-	PropertyType vocab.ThingPropType
+	Name     string
+	Unit     string
+	Writable bool
+	Value    string
+	IsSensor bool // sensors emit events on change
 }
+
+// OneWireNode with info on each node
 type OneWireNode struct {
 	DeviceType vocab.DeviceType
 	// ThingID     string
@@ -109,12 +111,12 @@ func applyVocabulary(name string, vocab map[string]string) (vocabName string, ha
 	return vocabName, hasName
 }
 
-// Parse the owserver xml data and returns a list of nodes and their parameters
+// ParseOneWireNodes pParses the owserver xml data and returns a list of nodes and their parameters
 //  xmlNode is the node to parse, its attribute and possibly subnodes
 //  latency to add to the root node
 //  isRootNode is set for the first node, eg the gateway itself
 func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration, isRootNode bool) []*OneWireNode {
-	owNodeList := []*OneWireNode{}
+	owNodeList := make([]*OneWireNode, 0)
 
 	owNode := OneWireNode{
 		// ID:          xmlNode.Attrs["ROMId"],
@@ -138,31 +140,24 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 		// if the xmlnode has no subnodes then it is a parameter describing the current node
 		if len(node.Nodes) == 0 {
 			// standardize the naming of properties and property types
-			propType := vocab.PropertyTypeAttr
 			writable := (strings.ToLower(node.Writable) == "true")
 			attrName := node.XMLName.Local
 			sensorInfo, isSensor := SensorTypeVocab[attrName]
 			if isSensor {
+				// this is a sensor. writable sensors are actuators
 				attrName = sensorInfo.name
-				propType = vocab.PropertyTypeSensor
-				if writable {
-					propType = vocab.PropertyTypeActuator
-				}
 			} else {
-				propType = vocab.PropertyTypeAttr
-				if writable {
-					propType = vocab.PropertyTypeConfig
-				}
+				// this is an attribute. writable attributes are configuration
 				attrName, _ = applyVocabulary(attrName, AttrVocab)
 			}
 
 			unit, _ := applyVocabulary(node.Units, UnitNameVocab)
 			owAttr := OneWireAttr{
-				Name:         attrName,
-				Value:        string(node.Content),
-				Unit:         unit,
-				PropertyType: propType,
-				Writable:     writable,
+				Name:     attrName,
+				Value:    string(node.Content),
+				Unit:     unit,
+				IsSensor: isSensor,
+				Writable: writable,
 			}
 			owNode.Attr[owAttr.Name] = owAttr
 			// Family is used to determine device type, default is gateway
@@ -234,6 +229,33 @@ func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
 	_ = resp.Body.Close()
 
 	return rootNode, err
+}
+
+// PollValues polls the OWServer gateway for Thing property values
+// Returns a map of device/node ID's containing a map of property name:value pairs
+// eg: map[nodeID](map[propName]propValue)
+func (edsAPI *EdsAPI) PollValues() (map[string](map[string]interface{}), error) {
+	// thingValues is a map of NodeID:{attr:value,...}
+	thingValues := make(map[string](map[string]interface{}))
+
+	// Read the values from the EDS gateway
+	startTime := time.Now()
+	rootNode, err := edsAPI.ReadEds()
+	endTime := time.Now()
+	latency := endTime.Sub(startTime)
+	if err != nil {
+		return nil, err
+	}
+	// Extract the nodes and convert properties to vocab names
+	nodeList := edsAPI.ParseOneWireNodes(rootNode, latency, true)
+	for _, node := range nodeList {
+		propValues := make(map[string]interface{})
+		for name, attr := range node.Attr {
+			propValues[name] = attr.Value
+		}
+		thingValues[node.NodeID] = propValues
+	}
+	return thingValues, nil
 }
 
 // UnmarshalXML parse xml

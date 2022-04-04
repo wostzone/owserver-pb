@@ -12,6 +12,9 @@ import (
 // Some tests require a living OWServer
 const edsAddress = ""
 
+// simulation file for testing without OWServer gateway
+const owserverSimulation = "../../test/owserver-details.xml"
+
 func TestDiscover(t *testing.T) {
 	edsAPI := eds.NewEdsAPI("", "", "")
 	addr, err := edsAPI.Discover()
@@ -21,7 +24,7 @@ func TestDiscover(t *testing.T) {
 
 // Read EDS test data from file
 func TestReadEdsFromFile(t *testing.T) {
-	edsAPI := eds.NewEdsAPI("file://../../test/owserver-details.xml", "", "")
+	edsAPI := eds.NewEdsAPI("file://"+owserverSimulation, "", "")
 	rootNode, err := edsAPI.ReadEds()
 	assert.NoError(t, err)
 	require.NotNil(t, rootNode, "Expected root node")
