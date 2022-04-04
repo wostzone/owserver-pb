@@ -29,7 +29,9 @@ type OWServerPBConfig struct {
 	// Login to the EDS OWserver using Basic Auth.
 	LoginName string `yaml:"loginName,omitempty"`
 	Password  string `yaml:"password,omitempty"`
-	// publish the TD of this service, default is False
+	// PrettyJSON for testing to improve readability of JSON output, default is False
+	PrettyJSON bool `yaml:"prettyJSON,omitempty"`
+	// PublishTD enables publish the TD of this service, default is False
 	PublishTD bool `yaml:"publishTD,omitempty"`
 	// interval of republishing the full TD, default is 1 hours
 	TDInterval int `yaml:"tdInterval,omitempty"`
@@ -72,8 +74,10 @@ type OWServerPB struct {
 	zone string
 }
 
-// heartbeat polls the EDS server every X seconds and updates the Exposed TD's
+// heartbeat polls the EDS server every X seconds and updates the Exposed Things
 func (pb *OWServerPB) heartbeat() {
+	logrus.Infof("OWServerPB.heartbeat started. TDinterval=%d seconds, Value interval is %d seconds",
+		pb.Config.TDInterval, pb.Config.ValueInterval)
 	var tdCountDown = 0
 	var valueCountDown = 0
 	for {
@@ -161,6 +165,9 @@ func (pb *OWServerPB) Start() error {
 		logrus.Errorf("Protocol Binding for OWServer startup failed")
 		return err
 	}
+	if pb.Config.PrettyJSON {
+		pb.hubClient.SetPrettyPrint(true)
+	}
 
 	// Publish the OWServer service as a Thing
 	pb.PublishServiceTD()
@@ -203,14 +210,14 @@ func NewOWServerPB(config OWServerPBConfig, mqttHostPort string,
 	}
 	pb.Config = config
 	// ensure valid defaults
-	if config.ClientID == "" {
-		config.ClientID = PluginID
+	if pb.Config.ClientID == "" {
+		pb.Config.ClientID = PluginID
 	}
-	if config.TDInterval == 0 {
-		config.TDInterval = 3600
+	if pb.Config.TDInterval == 0 {
+		pb.Config.TDInterval = 3600
 	}
-	if config.ValueInterval == 0 {
-		config.ValueInterval = 60
+	if pb.Config.ValueInterval == 0 {
+		pb.Config.ValueInterval = 60
 	}
 
 	// Create the adapter for the OWServer 1-wire gateway
