@@ -13,15 +13,15 @@ import (
 // Main entry to WoST protocol adapter for owserver-v2
 // This setup the configuration from file and commandline parameters and launches the service
 func main() {
-	pluginConfig := internal.OWServerPBConfig{}
-	hubConfig, err := config.LoadAllConfig(os.Args, "", internal.PluginID, &pluginConfig)
+	serviceConfig := internal.OWServerPBConfig{}
+	hubConfig, err := config.LoadAllConfig(os.Args, "", internal.PluginID, &serviceConfig)
 	if err != nil {
 		logrus.Errorf("%s: Failed to configure: %s", internal.PluginID, err)
 		os.Exit(1)
 	}
 
 	mqttHostPort := fmt.Sprintf("%s:%d", hubConfig.Address, hubConfig.MqttPortCert)
-	svc := internal.NewOWServerPB(pluginConfig.ClientID,
+	svc := internal.NewOWServerPB(serviceConfig,
 		mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
 
 	err = svc.Start()

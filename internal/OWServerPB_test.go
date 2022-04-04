@@ -146,7 +146,7 @@ func TestPollValues(t *testing.T) {
 	testClient := mqttclient.NewMqttClient(testPluginID+"-client", hubConfig.CaCert, 0)
 	err := testClient.ConnectWithClientCert(mqttHostPort, hubConfig.PluginCert)
 	assert.NoError(t, err)
-	eventTopics := mqttbinding.CreateTopic("+", mqttbinding.TopicSubjectProperties)
+	eventTopics := mqttbinding.CreateTopic("+", mqttbinding.TopicTypeEvent) + "/#"
 	testClient.Subscribe(eventTopics, func(thingID string, message []byte) {
 		eventCount++
 	})

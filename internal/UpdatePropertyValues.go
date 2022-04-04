@@ -34,7 +34,7 @@ func (pb *OWServerPB) PublishValues(thingValues map[string](map[string]interface
 		eThing, found := pb.eThings[deviceID]
 		if found {
 			// Publish property values that have changed
-			err := eThing.EmitPropertyValues(propValues)
+			err := eThing.EmitPropertyChanges(propValues, true)
 			if err != nil {
 				return err
 			}
