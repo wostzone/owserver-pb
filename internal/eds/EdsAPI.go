@@ -29,6 +29,12 @@ var AttrVocab = map[string]string{
 	"DateTime":   vocab.PropNameDateTime,
 	"DeviceName": vocab.PropNameName,
 	"HostName":   vocab.PropNameHostname,
+	// Exclude/ignore the following attributes as they are chatty and not useful
+	"RawData":      "",
+	"Counter1":     "",
+	"Counter2":     "",
+	"PollCount":    "",
+	"PrimaryValue": "",
 }
 
 // SensorTypeVocab maps OWServer sensor names to IoT vocabulary
@@ -150,33 +156,33 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 				// this is an attribute. writable attributes are configuration
 				attrName, _ = applyVocabulary(attrName, AttrVocab)
 			}
-
-			unit, _ := applyVocabulary(node.Units, UnitNameVocab)
-			owAttr := OneWireAttr{
-				Name:     attrName,
-				Value:    string(node.Content),
-				Unit:     unit,
-				IsSensor: isSensor,
-				Writable: writable,
-			}
-			owNode.Attr[owAttr.Name] = owAttr
-			// Family is used to determine device type, default is gateway
-			if node.XMLName.Local == "Family" {
-				deviceType := deviceTypeMap[owAttr.Value]
-				if deviceType == "" {
-					deviceType = vocab.DeviceTypeUnknown
+			if attrName != "" {
+				unit, _ := applyVocabulary(node.Units, UnitNameVocab)
+				owAttr := OneWireAttr{
+					Name:     attrName,
+					Value:    string(node.Content),
+					Unit:     unit,
+					IsSensor: isSensor,
+					Writable: writable,
 				}
-				owNode.DeviceType = deviceType
-			} else if node.XMLName.Local == "ROMId" {
-				// all subnodes use the ROMId as its ID
-				owNode.NodeID = owAttr.Value
-			} else if isRootNode && node.XMLName.Local == "DeviceName" {
-				// The gateway itself uses the deviceName as its ID and name
-				owNode.NodeID = owAttr.Value
-				owNode.Name = owAttr.Value
-				owNode.Description = "EDS OWServer Gateway"
+				owNode.Attr[owAttr.Name] = owAttr
+				// Family is used to determine device type, default is gateway
+				if node.XMLName.Local == "Family" {
+					deviceType := deviceTypeMap[owAttr.Value]
+					if deviceType == "" {
+						deviceType = vocab.DeviceTypeUnknown
+					}
+					owNode.DeviceType = deviceType
+				} else if node.XMLName.Local == "ROMId" {
+					// all subnodes use the ROMId as its ID
+					owNode.NodeID = owAttr.Value
+				} else if isRootNode && node.XMLName.Local == "DeviceName" {
+					// The gateway itself uses the deviceName as its ID and name
+					owNode.NodeID = owAttr.Value
+					owNode.Name = owAttr.Value
+					owNode.Description = "EDS OWServer Gateway"
+				}
 			}
-
 		} else {
 			// The node contains subnodes which contain one or more sensors.
 			subNodes := edsAPI.ParseOneWireNodes(&node, 0, false)

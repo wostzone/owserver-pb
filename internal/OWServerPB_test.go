@@ -130,7 +130,7 @@ func TestPollTDs(t *testing.T) {
 	time.Sleep(time.Millisecond * 500)
 	testClient.Close()
 	// the simulation file contains 3 things. The service is 1 thing.
-	assert.GreaterOrEqual(t, 4, tdCount)
+	assert.GreaterOrEqual(t, tdCount, 4)
 
 	svc.Stop()
 }

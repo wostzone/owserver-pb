@@ -27,6 +27,7 @@ func (pb *OWServerPB) CreateTDFromNode(node *eds.OneWireNode) (tdoc *thing.Thing
 		prop.Unit = attr.Unit
 
 		if attr.IsSensor {
+			prop.AtType = string(vocab.PropertyTypeOutput)
 			// sensors emit events
 			evAff := tdoc.AddEvent(attrName, attrName, vocab.WoTDataTypeString)
 			evAff.Data.Type = vocab.WoTDataTypeString
@@ -40,12 +41,14 @@ func (pb *OWServerPB) CreateTDFromNode(node *eds.OneWireNode) (tdoc *thing.Thing
 			}
 		} else {
 			// non-sensors are attributes. Writable attributes are configuration.
-			prop.ReadOnly = !attr.Writable
+			if attr.Writable {
+				prop.AtType = string(vocab.PropertyTypeConfig)
+				prop.ReadOnly = false
+			} else {
+				prop.AtType = string(vocab.PropertyTypeAttr)
+				prop.ReadOnly = true
+			}
 		}
-
-		//if attr.Value != "" {
-		//	prop.Value = attr.Value
-		//}
 	}
 
 	return
@@ -72,32 +75,21 @@ func (pb *OWServerPB) PollTDs() (err error) {
 
 	for _, node := range nodeList {
 		pb.UpdateExposedThingFromNode(node)
-		//thingID, thingDoc := pb.CreateTDFromNode(node)
-		//tds[thingID] = thingDoc
 	}
-	// // td.SetThingErrorStatus(pb.gatewayTD, "")
-	// gwNodeID, gwThingID, gwTD := pb.CreateGatewayTD(nodeList[0])
-	// pb.setThingInfo(gwNodeID, gwThingID)
-
-	// // (re)discover any new sensor nodes and publish when changed
-	// for _, node := range deviceNodes {
-	// 	nodeID, thingID, nodeTD := pb.CreateNodeTD(&node)
-	// 	tds[nodeID] = nodeTD
-	// 	pb.setThingInfo(nodeID, thingID)
-	// }
 	return nil
 }
 
 // UpdateExposedThingFromNode ensures that an exposed thing exists for the onewire node
-// This updates the schema: TBD value?
+// This updates the schema.
 func (pb *OWServerPB) UpdateExposedThingFromNode(node *eds.OneWireNode) {
-	eThing, found := pb.eThings[node.NodeID]
-	if !found {
-		tdoc := pb.CreateTDFromNode(node)
-		eThing = mqttbinding.CreateExposedThing(tdoc, pb.hubClient)
-		pb.eThings[node.NodeID] = eThing
-		_ = eThing.Expose()
-	} else {
-		// Node metadata doesn't change
-	}
+	//eThing, found := pb.eThings[node.NodeID]
+	//if !found {
+	tdoc := pb.CreateTDFromNode(node)
+	eThing := mqttbinding.CreateExposedThing(tdoc, pb.hubClient)
+	pb.eThings[node.NodeID] = eThing
+	_ = eThing.Expose()
+	//} else {
+	//	// Node metadata doesn't change
+	//	_ = eThing.Expose()
+	//}
 }
