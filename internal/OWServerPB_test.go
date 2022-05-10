@@ -157,8 +157,8 @@ func TestPollValues(t *testing.T) {
 	assert.NoError(t, err)
 	time.Sleep(time.Second)
 
-	// the simulation file contains 3 things + service is 4 events
-	assert.Equal(t, 4, eventCount)
+	// the simulation file contains 3 things + service is 4 property events + non property events
+	assert.GreaterOrEqual(t, eventCount, 4)
 
 	svc.Stop()
 }
