@@ -85,7 +85,10 @@ func (pb *OWServerPB) UpdateExposedThingFromNode(node *eds.OneWireNode) {
 	//eThing, found := pb.eThings[node.NodeID]
 	//if !found {
 	tdoc := pb.CreateTDFromNode(node)
-	eThing := mqttbinding.CreateExposedThing(tdoc, pb.hubClient)
+	eThing := mqttbinding.CreateExposedThing(node.NodeID, tdoc, pb.hubClient)
+	eThing.SetPropertyWriteHandler("", pb.HandleConfigRequest)
+	eThing.SetActionHandler("", pb.HandleActionRequest)
+
 	pb.eThings[node.NodeID] = eThing
 	_ = eThing.Expose()
 	//} else {

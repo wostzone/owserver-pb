@@ -123,11 +123,12 @@ func (pb *OWServerPB) PublishServiceTD() {
 
 	// Include the service properties (attributes and configuration)
 	tdoc.AddProperty(vocab.PropNameAddress, "Gateway Address", vocab.WoTDataTypeString)
-	eThing := mqttbinding.CreateExposedThing(tdoc, pb.hubClient)
-	eThing.SetPropertyWriteHandler("", func(propName string, value mqttbinding.InteractionOutput) error {
-		//
-		return nil
-	})
+	eThing := mqttbinding.CreateExposedThing(pb.Config.ClientID, tdoc, pb.hubClient)
+	eThing.SetPropertyWriteHandler("",
+		func(eThing *mqttbinding.MqttExposedThing, propName string, value mqttbinding.InteractionOutput) error {
+			//
+			return nil
+		})
 	err := eThing.Expose()
 	if err != nil {
 		logrus.Errorf("PublishServiceTD: Error publishing service TD: %s", err)

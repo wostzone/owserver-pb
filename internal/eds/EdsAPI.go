@@ -5,8 +5,10 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,10 +28,11 @@ var deviceTypeMap = map[string]vocab.DeviceType{
 // AttrVocab maps OWServer attribute names to IoT vocabulary
 var AttrVocab = map[string]string{
 	"MACAddress": vocab.PropNameMAC,
-	"DateTime":   vocab.PropNameDateTime,
+	//"DateTime":   vocab.PropNameDateTime,
 	"DeviceName": vocab.PropNameName,
 	"HostName":   vocab.PropNameHostname,
 	// Exclude/ignore the following attributes as they are chatty and not useful
+	"DateTime":     "",
 	"RawData":      "",
 	"Counter1":     "",
 	"Counter2":     "",
@@ -41,17 +44,25 @@ var AttrVocab = map[string]string{
 var SensorTypeVocab = map[string]struct {
 	name     string
 	dataType string
+	decimals int // number of decimals accuracy for this value
 }{
 	// "BarometricPressureHg": vocab.PropNameAtmosphericPressure, // unit Hg
 	"BarometricPressureMb": {name: vocab.PropNameAtmosphericPressure,
-		dataType: vocab.WoTDataTypeNumber}, // unit Mb
-	"DewPoint":    {name: vocab.PropNameDewpoint, dataType: vocab.WoTDataTypeNumber},
-	"HeatIndex":   {name: vocab.PropNameHeatIndex, dataType: vocab.WoTDataTypeNumber},
-	"Humidity":    {name: vocab.PropNameHumidity, dataType: vocab.WoTDataTypeNumber},
-	"Humidex":     {name: vocab.PropNameHumidex, dataType: vocab.WoTDataTypeNumber},
-	"Light":       {name: vocab.PropNameLuminance, dataType: vocab.WoTDataTypeNumber},
-	"RelayState":  {name: vocab.PropNameRelay, dataType: vocab.WoTDataTypeBool},
-	"Temperature": {name: vocab.PropNameTemperature, dataType: vocab.WoTDataTypeNumber},
+		dataType: vocab.WoTDataTypeNumber, decimals: 0}, // unit Mb
+	"DewPoint": {name: vocab.PropNameDewpoint,
+		dataType: vocab.WoTDataTypeNumber, decimals: 1},
+	"HeatIndex": {name: vocab.PropNameHeatIndex,
+		dataType: vocab.WoTDataTypeNumber, decimals: 1},
+	"Humidity": {name: vocab.PropNameHumidity,
+		dataType: vocab.WoTDataTypeNumber, decimals: 0},
+	"Humidex": {name: vocab.PropNameHumidex,
+		dataType: vocab.WoTDataTypeNumber, decimals: 1},
+	"Light": {name: vocab.PropNameLuminance,
+		dataType: vocab.WoTDataTypeNumber, decimals: 0},
+	"RelayState": {name: vocab.PropNameRelay,
+		dataType: vocab.WoTDataTypeBool, decimals: 0},
+	"Temperature": {name: vocab.PropNameTemperature,
+		dataType: vocab.WoTDataTypeNumber, decimals: 1},
 }
 
 // UnitNameVocab maps OWServer unit names to IoT vocabulary
@@ -101,7 +112,7 @@ type OneWireAttr struct {
 type OneWireNode struct {
 	DeviceType vocab.DeviceType
 	// ThingID     string
-	NodeID      string // hardware ID
+	NodeID      string // ROM ID
 	Name        string
 	Description string
 	Attr        map[string]OneWireAttr // attribute by name
@@ -117,7 +128,52 @@ func applyVocabulary(name string, vocab map[string]string) (vocabName string, ha
 	return vocabName, hasName
 }
 
-// ParseOneWireNodes pParses the owserver xml data and returns a list of nodes and their parameters
+// Discover any EDS OWServer ENet-2 on the local network for 3 seconds
+// This uses a UDP Broadcast on port 30303 as stated in the manual
+// If found, this sets the service address for further use
+// Returns the address or an error if not found
+func (edsAPI *EdsAPI) Discover() (addr string, err error) {
+	logrus.Infof("Starting discovery")
+	// listen
+	pc, err := net.ListenPacket("udp4", ":30303")
+	if err != nil {
+		return "", err
+	}
+	defer pc.Close()
+
+	addr2, err := net.ResolveUDPAddr("udp4", "255.255.255.255:30303")
+	if err != nil {
+		return "", err
+	}
+
+	_, err = pc.WriteTo([]byte("D"), addr2)
+	if err != nil {
+		return "", err
+	}
+
+	buf := make([]byte, 1024)
+	// receive 2 messages, first the broadcast, followed by the response, if there is one
+	// wait 3 seconds before giving up
+	for {
+		pc.SetReadDeadline(time.Now().Add(time.Second * time.Duration(edsAPI.discoTimeoutSec)))
+		n, remoteAddr, err := pc.ReadFrom(buf)
+		if err != nil {
+			logrus.Infof("Discovery ended without results")
+			return "", err
+		} else if n > 1 {
+			switch rxAddr := remoteAddr.(type) {
+			case *net.UDPAddr:
+				addr = rxAddr.IP.String()
+				logrus.Infof("EdsAPI.Discover. Found at %s: %s", addr, buf[:n])
+				return addr, nil
+			}
+		}
+	}
+
+}
+
+// ParseOneWireNodes parses the owserver xml data and returns a list of nodes and their parameters
+// This also converts sensor values to a proper decimals. Eg temperature isn't 4 digits but 1.
 //  xmlNode is the node to parse, its attribute and possibly subnodes
 //  latency to add to the root node
 //  isRootNode is set for the first node, eg the gateway itself
@@ -141,7 +197,7 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 		}
 		owNode.Attr[owAttr.Name] = owAttr
 	}
-	// parse attributes
+	// parse attributes and round sensor values
 	for _, node := range xmlNode.Nodes {
 		// if the xmlnode has no subnodes then it is a parameter describing the current node
 		if len(node.Nodes) == 0 {
@@ -149,18 +205,29 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 			writable := (strings.ToLower(node.Writable) == "true")
 			attrName := node.XMLName.Local
 			sensorInfo, isSensor := SensorTypeVocab[attrName]
+			decimals := 0
 			if isSensor {
-				// this is a sensor. writable sensors are actuators
+				// this is a sensor. (writable sensors are actuators)
 				attrName = sensorInfo.name
+				decimals = sensorInfo.decimals
 			} else {
 				// this is an attribute. writable attributes are configuration
 				attrName, _ = applyVocabulary(attrName, AttrVocab)
 			}
 			if attrName != "" {
 				unit, _ := applyVocabulary(node.Units, UnitNameVocab)
+				valueStr := string(node.Content)
+				valueFloat, err := strconv.ParseFloat(valueStr, 32)
+				// rounding of sensor values to decimals
+				if err == nil && decimals >= 0 {
+					ratio := math.Pow(10, float64(decimals))
+					valueFloat = math.Round(valueFloat*ratio) / ratio
+					valueStr = strconv.FormatFloat(valueFloat, 'f', decimals, 32)
+				}
+
 				owAttr := OneWireAttr{
 					Name:     attrName,
-					Value:    string(node.Content),
+					Value:    valueStr,
 					Unit:     unit,
 					IsSensor: isSensor,
 					Writable: writable,
@@ -192,6 +259,35 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 	// owNode.ThingID = td.CreatePublisherThingID(pb.hubConfig.Zone, PluginID, owNode.NodeID, owNode.DeviceType)
 
 	return owNodeList
+}
+
+// PollValues polls the OWServer gateway for Thing property values
+// Returns a map of device/node ID's containing a map of property name:value pairs
+// eg: map[nodeID](map[propName]propValue)
+func (edsAPI *EdsAPI) PollValues() (map[string](map[string]interface{}), error) {
+	logrus.Infof("EdsAPI.PollValues")
+
+	// thingValues is a map of NodeID:{attr:value,...}
+	thingValues := make(map[string](map[string]interface{}))
+
+	// Read the values from the EDS gateway
+	startTime := time.Now()
+	rootNode, err := edsAPI.ReadEds()
+	endTime := time.Now()
+	latency := endTime.Sub(startTime)
+	if err != nil {
+		return nil, err
+	}
+	// Extract the nodes and convert properties to vocab names
+	nodeList := edsAPI.ParseOneWireNodes(rootNode, latency, true)
+	for _, node := range nodeList {
+		propValues := make(map[string]interface{})
+		for name, attr := range node.Attr {
+			propValues[name] = attr.Value
+		}
+		thingValues[node.NodeID] = propValues
+	}
+	return thingValues, nil
 }
 
 // ReadEds reads EDS hub and return the result as an XML node
@@ -237,33 +333,6 @@ func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
 	return rootNode, err
 }
 
-// PollValues polls the OWServer gateway for Thing property values
-// Returns a map of device/node ID's containing a map of property name:value pairs
-// eg: map[nodeID](map[propName]propValue)
-func (edsAPI *EdsAPI) PollValues() (map[string](map[string]interface{}), error) {
-	// thingValues is a map of NodeID:{attr:value,...}
-	thingValues := make(map[string](map[string]interface{}))
-
-	// Read the values from the EDS gateway
-	startTime := time.Now()
-	rootNode, err := edsAPI.ReadEds()
-	endTime := time.Now()
-	latency := endTime.Sub(startTime)
-	if err != nil {
-		return nil, err
-	}
-	// Extract the nodes and convert properties to vocab names
-	nodeList := edsAPI.ParseOneWireNodes(rootNode, latency, true)
-	for _, node := range nodeList {
-		propValues := make(map[string]interface{})
-		for name, attr := range node.Attr {
-			propValues[name] = attr.Value
-		}
-		thingValues[node.NodeID] = propValues
-	}
-	return thingValues, nil
-}
-
 // UnmarshalXML parse xml
 func (n *XMLNode) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	n.Attrs = start.Attr
@@ -272,48 +341,24 @@ func (n *XMLNode) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return d.DecodeElement((*node)(n), &start)
 }
 
-// Discover any EDS OWServer ENet-2 on the local network for 3 seconds
-// This uses a UDP Broadcast on port 30303 as stated in the manual
-// If found, this sets the service address for further use
-// Returns the address or an error if not found
-func (edsAPI *EdsAPI) Discover() (addr string, err error) {
-	logrus.Infof("Starting discovery")
-	// listen
-	pc, err := net.ListenPacket("udp4", ":30303")
+// WriteData writes a value to a variable
+// this posts a request to devices.html?rom={romID}&variable={variable}&value={value}
+func (edsAPI *EdsAPI) WriteData(romID string, variable string, value string) error {
+	// TODO: auto config if this is http or https
+	writeURL := "http://" + edsAPI.address + "/devices.htm" +
+		"?rom=" + romID + "&variable=" + variable + "&value=" + value
+	req, _ := http.NewRequest("GET", writeURL, nil)
+
+	logrus.Infof("EdsAPI.WriteData: URL: %s", writeURL)
+	req.SetBasicAuth(edsAPI.loginName, edsAPI.password)
+	client := &http.Client{Timeout: time.Second}
+	resp, err := client.Do(req)
+	_ = resp
+
 	if err != nil {
-		return "", err
+		logrus.Errorf("EdsAPI.WriteData: Unable to write data to EDS gateway at %s: %v", writeURL, err)
 	}
-	defer pc.Close()
-
-	addr2, err := net.ResolveUDPAddr("udp4", "255.255.255.255:30303")
-	if err != nil {
-		return "", err
-	}
-
-	_, err = pc.WriteTo([]byte("D"), addr2)
-	if err != nil {
-		return "", err
-	}
-
-	buf := make([]byte, 1024)
-	// receive 2 messages, first the broadcast, followed by the response, if there is one
-	// wait 3 seconds before giving up
-	for {
-		pc.SetReadDeadline(time.Now().Add(time.Second * time.Duration(edsAPI.discoTimeoutSec)))
-		n, remoteAddr, err := pc.ReadFrom(buf)
-		if err != nil {
-			logrus.Infof("Discovery ended without results")
-			return "", err
-		} else if n > 1 {
-			switch rxAddr := remoteAddr.(type) {
-			case *net.UDPAddr:
-				addr = rxAddr.IP.String()
-				logrus.Infof("EdsAPI.Discover. Found at %s: %s", addr, buf[:n])
-				return addr, nil
-			}
-		}
-	}
-
+	return err
 }
 
 // NewEdsAPI creates a new NewEdsAPI instance
