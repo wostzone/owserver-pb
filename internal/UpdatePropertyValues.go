@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"github.com/wostzone/hub/lib/client/pkg/vocab"
 )
 
 // PollValues obtains thing property values of each Thing and converts the EDS property
@@ -17,6 +18,12 @@ func (pb *OWServerPB) PollValues() (nodeValues map[string](map[string]interface{
 		return
 	}
 	nodeValues, err = pb.edsAPI.PollValues()
+	// update service properties if enabled
+	if pb.Config.PublishTD {
+		serviceProps := make(map[string]interface{})
+		serviceProps[vocab.PropNameGatewayAddress] = pb.edsAPI.GetLastAddress()
+		nodeValues[pb.Config.ClientID] = serviceProps
+	}
 	return nodeValues, err
 }
 
@@ -29,7 +36,7 @@ func (pb *OWServerPB) PublishValues(thingValues map[string](map[string]interface
 		logrus.Errorf("OWServerPB.PublishValues. thingValues is nil")
 		return err
 	}
-	//var err error
+	logrus.Infof("OWServerPB.PublishValues for %d things", len(thingValues))
 	for deviceID, propValues := range thingValues {
 		eThing, found := pb.eThings[deviceID]
 		if found {
@@ -38,6 +45,8 @@ func (pb *OWServerPB) PublishValues(thingValues map[string](map[string]interface
 			if err != nil {
 				return err
 			}
+		} else {
+			logrus.Errorf("PublishValues. Device with ID %s has no Exposed Thing", deviceID)
 		}
 	}
 	return nil

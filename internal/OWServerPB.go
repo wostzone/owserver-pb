@@ -122,14 +122,16 @@ func (pb *OWServerPB) PublishServiceTD() {
 		"This service publishes information on The EDS OWServer 1-wire gateway and its connected sensors")
 
 	// Include the service properties (attributes and configuration)
-	tdoc.AddProperty(vocab.PropNameAddress, "Gateway Address", vocab.WoTDataTypeString)
+	tdoc.AddProperty(vocab.PropNameGatewayAddress, "Gateway Address", vocab.WoTDataTypeString)
 	eThing := mqttbinding.CreateExposedThing(pb.Config.ClientID, tdoc, pb.hubClient)
+	pb.eThings[pb.Config.ClientID] = eThing
 	eThing.SetPropertyWriteHandler("",
 		func(eThing *mqttbinding.MqttExposedThing, propName string, value mqttbinding.InteractionOutput) error {
 			//
 			return nil
 		})
 	err := eThing.Expose()
+	//eThing.EmitPropertyChange(PropNameAddress, pb.edsAPI.)
 	if err != nil {
 		logrus.Errorf("PublishServiceTD: Error publishing service TD: %s", err)
 	}
@@ -218,7 +220,7 @@ func NewOWServerPB(config OWServerPBConfig, mqttHostPort string,
 		pb.Config.TDInterval = 3600
 	}
 	if pb.Config.ValueInterval == 0 {
-		pb.Config.ValueInterval = 60
+		pb.Config.ValueInterval = 30
 	}
 
 	// Create the adapter for the OWServer 1-wire gateway

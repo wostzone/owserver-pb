@@ -2,7 +2,8 @@
 
 #clientID: "owserver" # optional override of default service client ID
 
-#publishTD: true # publish the TD of this service itself on the message bus
+# publish the TD of this service itself on the message bus, default is false
+#publishTD: false
 
 # OWServer gateway configuration
 #owserverAddress: 192.168.1.101  # default: auto discovery

@@ -183,13 +183,19 @@ func (edsAPI *EdsAPI) Discover() (addr string, err error) {
 			}
 		}
 	}
-
 }
 
-// ParseOneWireNodes parses the owserver xml data and returns a list of nodes and their parameters
+// GetLastAddress returns the last used address of the gateway
+// This is either the configured or the discovered address
+func (edsAPI *EdsAPI) GetLastAddress() string {
+	return edsAPI.address
+}
+
+// ParseOneWireNodes parses the owserver xml data and returns a list of nodes,
+// including the owserver gateway, and their parameters.
 // This also converts sensor values to a proper decimals. Eg temperature isn't 4 digits but 1.
 //  xmlNode is the node to parse, its attribute and possibly subnodes
-//  latency to add to the root node
+//  latency to add to the root node (gateway device)
 //  isRootNode is set for the first node, eg the gateway itself
 func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration, isRootNode bool) []*OneWireNode {
 	owNodeList := make([]*OneWireNode, 0)
@@ -304,9 +310,9 @@ func (edsAPI *EdsAPI) PollValues() (map[string](map[string]interface{}), error) 
 	return thingValues, nil
 }
 
-// ReadEds reads EDS hub and return the result as an XML node
-// If edsAPI.address starts with file:// then read from file, otherwise from address
-// The timeout for HTTP access is 1 second
+// ReadEds reads EDS gateway and return the result as an XML node
+// If edsAPI.address starts with file:// then read from file, otherwise from http
+// If no address is configured, one will be auto discovered the first time.
 func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
 	// don't discover or read concurrently
 	edsAPI.readMutex.Lock()
@@ -336,7 +342,7 @@ func (edsAPI *EdsAPI) ReadEds() (rootNode *XMLNode, err error) {
 
 	// resp, err := http.Get(edsURL)
 	if err != nil {
-		logrus.Errorf("Unable to read EDS hub from %s: %v", edsURL, err)
+		logrus.Errorf("Unable to read EDS gateway from %s: %v", edsURL, err)
 		return nil, err
 	}
 	// Decode the EDS response into XML
