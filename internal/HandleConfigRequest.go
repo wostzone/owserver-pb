@@ -14,13 +14,18 @@ func (pb *OWServerPB) HandleConfigRequest(
 	logrus.Infof("HandleConfigRequest for Thing %s. propName=%s", eThing.GetThingDescription().GetID(), propName)
 	// for now accept all configuration
 
+	// If the property name is converted to a standardized vocabulary then convert the name
+	// to the EDS writable property name.
+
 	err := pb.edsAPI.WriteData(eThing.DeviceID, propName, io.ValueAsString())
 	if err == nil {
 		time.Sleep(time.Second)
-		pb.UpdatePropertyValues()
+		_ = pb.UpdatePropertyValues()
 		// The EDS is slow, retry in case it was missed
 		time.Sleep(time.Second * 2)
-		pb.UpdatePropertyValues()
+		err = pb.UpdatePropertyValues()
+	} else {
+		logrus.Errorf("HandleConfigRequest results in error: %s", err)
 	}
 	return err
 }

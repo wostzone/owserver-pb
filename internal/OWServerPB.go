@@ -91,7 +91,7 @@ func (pb *OWServerPB) heartbeat() {
 		tdCountDown--
 		if tdCountDown <= 0 {
 			// create ExposedThing's as they are discovered
-			_ = pb.PollTDs()
+			_ = pb.PollProperties()
 			tdCountDown = pb.Config.TDInterval
 		}
 		valueCountDown--

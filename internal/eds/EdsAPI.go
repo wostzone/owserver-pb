@@ -205,9 +205,9 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 			writable := (strings.ToLower(node.Writable) == "true")
 			attrName := node.XMLName.Local
 			sensorInfo, isSensor := SensorTypeVocab[attrName]
-			decimals := 0
+			decimals := -1 // -1 means no conversion
 			if isSensor {
-				// this is a sensor. (writable sensors are actuators)
+				// this is a known sensor type. (writable sensors are actuators)
 				attrName = sensorInfo.name
 				decimals = sensorInfo.decimals
 			} else {
