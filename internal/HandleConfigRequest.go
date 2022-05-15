@@ -4,6 +4,7 @@ package internal
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/wostzone/hub/lib/client/pkg/mqttbinding"
+	"github.com/wostzone/owserver-pb/internal/eds"
 	"time"
 )
 
@@ -16,8 +17,9 @@ func (pb *OWServerPB) HandleConfigRequest(
 
 	// If the property name is converted to a standardized vocabulary then convert the name
 	// to the EDS writable property name.
+	edsName := eds.LookupEdsName(propName)
 
-	err := pb.edsAPI.WriteData(eThing.DeviceID, propName, io.ValueAsString())
+	err := pb.edsAPI.WriteData(eThing.DeviceID, edsName, io.ValueAsString())
 	if err == nil {
 		time.Sleep(time.Second)
 		_ = pb.UpdatePropertyValues()

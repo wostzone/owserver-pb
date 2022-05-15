@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/sirupsen/logrus"
 	"github.com/wostzone/hub/lib/client/pkg/mqttbinding"
+	"github.com/wostzone/owserver-pb/internal/eds"
 	"time"
 )
 
@@ -26,7 +27,10 @@ func (pb *OWServerPB) HandleActionRequest(
 		return errors.New("Unknown action " + actionName)
 	}
 
-	err := pb.edsAPI.WriteData(eThing.DeviceID, actionName, io.ValueAsString())
+	// lookup the action name used by the EDS
+	edsName := eds.LookupEdsName(actionName)
+
+	err := pb.edsAPI.WriteData(eThing.DeviceID, edsName, io.ValueAsString())
 	if err == nil {
 		time.Sleep(time.Second)
 		_ = pb.UpdatePropertyValues()

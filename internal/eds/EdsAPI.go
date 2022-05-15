@@ -128,6 +128,20 @@ func applyVocabulary(name string, vocab map[string]string) (vocabName string, ha
 	return vocabName, hasName
 }
 
+// LookupEdsName returns the EDS name of a sensor from the vocabulary name.
+// If the name is not a vocabulary name then return the original name.
+// intended for executing an action or writing a configuration.
+// @param name is the standardized vocabulary for the property or sensor name
+func LookupEdsName(name string) string {
+	for edsName, sensorInfo := range SensorTypeVocab {
+		if sensorInfo.name == name {
+			return edsName
+			break
+		}
+	}
+	return name
+}
+
 // Discover any EDS OWServer ENet-2 on the local network for 3 seconds
 // This uses a UDP Broadcast on port 30303 as stated in the manual
 // If found, this sets the service address for further use
