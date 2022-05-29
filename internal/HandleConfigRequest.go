@@ -3,15 +3,16 @@ package internal
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hub/lib/client/pkg/mqttbinding"
 	"github.com/wostzone/owserver-pb/internal/eds"
+	"github.com/wostzone/wost-go/pkg/exposedthing"
+	"github.com/wostzone/wost-go/pkg/thing"
 	"time"
 )
 
 // HandleConfigRequest handles requests to update a Thing's configuration
 // There are currently no node configurations to update to onewire
 func (pb *OWServerPB) HandleConfigRequest(
-	eThing *mqttbinding.MqttExposedThing, propName string, io mqttbinding.InteractionOutput) error {
+	eThing *exposedthing.ExposedThing, propName string, io *thing.InteractionOutput) error {
 	logrus.Infof("HandleConfigRequest for Thing %s. propName=%s", eThing.GetThingDescription().GetID(), propName)
 	// for now accept all configuration
 

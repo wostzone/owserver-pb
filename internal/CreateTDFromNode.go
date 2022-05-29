@@ -1,10 +1,9 @@
 package internal
 
 import (
-	"github.com/wostzone/hub/lib/client/pkg/vocab"
-
-	"github.com/wostzone/hub/lib/client/pkg/thing"
 	"github.com/wostzone/owserver-pb/internal/eds"
+	"github.com/wostzone/wost-go/pkg/thing"
+	"github.com/wostzone/wost-go/pkg/vocab"
 )
 
 // CreateTDFromNode converts the node into a TD that describes the node.

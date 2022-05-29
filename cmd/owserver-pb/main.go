@@ -1,12 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"github.com/wostzone/wost-go/pkg/config"
+	"github.com/wostzone/wost-go/pkg/proc"
 	"os"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hub/lib/client/pkg/config"
-	"github.com/wostzone/hub/lib/client/pkg/proc"
 	"github.com/wostzone/owserver-pb/internal"
 )
 
@@ -20,9 +19,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	mqttHostPort := fmt.Sprintf("%s:%d", hubConfig.Address, hubConfig.MqttPortCert)
 	svc := internal.NewOWServerPB(serviceConfig,
-		mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+		hubConfig.Address, hubConfig.MqttPortCert, hubConfig.CaCert, hubConfig.PluginCert)
 
 	err = svc.Start()
 	if err != nil {

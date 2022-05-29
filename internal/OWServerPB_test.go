@@ -2,9 +2,12 @@ package internal_test
 
 import (
 	"fmt"
-	"github.com/wostzone/hub/lib/client/pkg/mqttbinding"
-	"github.com/wostzone/hub/lib/client/pkg/thing"
-	"github.com/wostzone/hub/lib/client/pkg/vocab"
+	"github.com/wostzone/wost-go/pkg/config"
+	"github.com/wostzone/wost-go/pkg/consumedthing"
+	"github.com/wostzone/wost-go/pkg/mqttclient"
+	"github.com/wostzone/wost-go/pkg/testenv"
+	"github.com/wostzone/wost-go/pkg/thing"
+	"github.com/wostzone/wost-go/pkg/vocab"
 	"os"
 	"os/exec"
 	"path"
@@ -15,9 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/wostzone/hub/lib/client/pkg/config"
-	"github.com/wostzone/hub/lib/client/pkg/mqttclient"
-	"github.com/wostzone/hub/lib/client/pkg/testenv"
 	"github.com/wostzone/owserver-pb/internal"
 )
 
@@ -47,14 +47,14 @@ func TestMain(m *testing.M) {
 	testenv.SaveCerts(&testCerts, certsFolder)
 
 	// load the plugin config with client cert
-	hubConfig = config.CreateDefaultHubConfig(homeFolder)
-	config.LoadHubConfig("", internal.PluginID, hubConfig)
+	hubConfig = config.CreateHubConfig(homeFolder)
+	hubConfig.Load("", internal.PluginID)
 	mqttHostPort = fmt.Sprintf("%s:%d", hubConfig.Address, hubConfig.MqttPortCert)
 	owsConfig.ClientID = testPluginID
 	owsConfig.EdsAddress = owserverSimulation
 
 	// run the test mosquitto server. Use only certificate authentication
-	mosquittoCmd, _ = testenv.StartMosquitto(hubConfig.ConfigFolder, hubConfig.CertsFolder, &testCerts)
+	mosquittoCmd, _ = testenv.StartMosquitto(&testCerts, hubConfig.ConfigFolder)
 	if mosquittoCmd == nil {
 		logrus.Fatalf("Unable to setup mosquitto")
 	}
@@ -63,6 +63,7 @@ func TestMain(m *testing.M) {
 
 	result := m.Run()
 	time.Sleep(time.Second)
+	testenv.StopMosquitto(mosquittoCmd, "")
 	mosquittoCmd.Process.Kill()
 
 	os.Exit(result)
@@ -80,7 +81,7 @@ func TestStartStop(t *testing.T) {
 
 	serviceThingID := thing.CreatePublisherID(
 		"", owsConfig.ClientID, owsConfig.ClientID, vocab.DeviceTypeService)
-	serviceTopic := mqttbinding.CreateTopic(serviceThingID, mqttbinding.TopicTypeTD)
+	serviceTopic := consumedthing.CreateTopic(serviceThingID, consumedthing.TopicTypeTD)
 
 	testClient.Subscribe(serviceTopic, func(topic string, message []byte) {
 		logrus.Infof("TestStartStop: received message for thingID: %s", topic)
@@ -88,7 +89,8 @@ func TestStartStop(t *testing.T) {
 		rxTopic = topic
 	})
 	// startup
-	svc := internal.NewOWServerPB(owsConfig, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig,
+		hubConfig.Address, hubConfig.MqttPortCert, hubConfig.CaCert, hubConfig.PluginCert)
 	svc.Config.PublishTD = true
 	err = svc.Start()
 	assert.NoError(t, err)
@@ -105,14 +107,14 @@ func TestPollTDs(t *testing.T) {
 	var tdCount int = 0
 
 	logrus.Infof("--- TestPollTDs ---")
-	svc := internal.NewOWServerPB(owsConfig, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig, hubConfig.Address, hubConfig.MqttPortCert, hubConfig.CaCert, hubConfig.PluginCert)
 	assert.NotNil(t, svc)
 
 	// Count the number of received TDs
 	testClient := mqttclient.NewMqttClient(testPluginID+"-client", hubConfig.CaCert, 0)
 	err := testClient.ConnectWithClientCert(mqttHostPort, hubConfig.PluginCert)
 	assert.NoError(t, err)
-	tdTopics := mqttbinding.CreateTopic("+", mqttbinding.TopicTypeTD)
+	tdTopics := consumedthing.CreateTopic("+", consumedthing.TopicTypeTD)
 	testClient.Subscribe(tdTopics, func(thingID string, message []byte) {
 		tdCount++
 	})
@@ -128,7 +130,7 @@ func TestPollTDs(t *testing.T) {
 	//assert.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 500)
-	testClient.Close()
+	testClient.Disconnect()
 	// the simulation file contains 3 things. The service is 1 thing.
 	assert.GreaterOrEqual(t, tdCount, 4)
 
@@ -139,14 +141,15 @@ func TestPollValues(t *testing.T) {
 	logrus.Infof("--- TestPollOnce ---")
 	var eventCount int = 0
 
-	svc := internal.NewOWServerPB(owsConfig, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig,
+		hubConfig.Address, hubConfig.MqttPortCert, hubConfig.CaCert, hubConfig.PluginCert)
 	assert.NotNil(t, svc)
 
 	// Count the number of received value events
 	testClient := mqttclient.NewMqttClient(testPluginID+"-client", hubConfig.CaCert, 0)
 	err := testClient.ConnectWithClientCert(mqttHostPort, hubConfig.PluginCert)
 	assert.NoError(t, err)
-	eventTopics := mqttbinding.CreateTopic("+", mqttbinding.TopicTypeEvent) + "/#"
+	eventTopics := consumedthing.CreateTopic("+", consumedthing.TopicTypeEvent) + "/#"
 	testClient.Subscribe(eventTopics, func(thingID string, message []byte) {
 		eventCount++
 	})
@@ -166,7 +169,8 @@ func TestPollValues(t *testing.T) {
 func TestPollValuesNotInitialized(t *testing.T) {
 	logrus.Infof("--- TestPollValuesNotInitialized ---")
 
-	svc := internal.NewOWServerPB(owsConfig, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig,
+		hubConfig.Address, hubConfig.MqttPortCert, hubConfig.CaCert, hubConfig.PluginCert)
 	_, err := svc.PollValues()
 	require.Error(t, err)
 	err = svc.PollProperties()
@@ -188,7 +192,8 @@ func TestPollInvalidEDSAddress(t *testing.T) {
 	logrus.Infof("--- TestPollInvalidEDSAddress ---")
 
 	owsConfig.EdsAddress = "http://invalidAddress/"
-	svc := internal.NewOWServerPB(owsConfig, mqttHostPort, hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig,
+		hubConfig.Address, hubConfig.MqttPortCert, hubConfig.CaCert, hubConfig.PluginCert)
 	assert.NotNil(t, svc)
 
 	err := svc.Start()
@@ -203,8 +208,8 @@ func TestPollInvalidEDSAddress(t *testing.T) {
 func TestPublishServiceTD(t *testing.T) {
 	logrus.Infof("--- TestPublishServiceTD ---")
 
-	svc := internal.NewOWServerPB(owsConfig, mqttHostPort,
-		hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig,
+		hubConfig.Address, hubConfig.MqttPortCert, hubConfig.CaCert, hubConfig.PluginCert)
 	svc.Config.PublishTD = true
 	err := svc.Start()
 	assert.NoError(t, err)
@@ -216,8 +221,8 @@ func TestPublishServiceTD(t *testing.T) {
 func TestPublishServiceTDBadAddress(t *testing.T) {
 	logrus.Infof("--- TestPublishServiceTD ---")
 
-	svc := internal.NewOWServerPB(owsConfig, "badmqtt:port",
-		hubConfig.CaCert, hubConfig.PluginCert)
+	svc := internal.NewOWServerPB(owsConfig,
+		"badmqttaddress", 22, hubConfig.CaCert, hubConfig.PluginCert)
 	svc.Config.PublishTD = true
 	err := svc.Start()
 	assert.Error(t, err)

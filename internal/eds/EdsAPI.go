@@ -4,6 +4,7 @@ package eds
 import (
 	"encoding/xml"
 	"fmt"
+	"github.com/wostzone/wost-go/pkg/vocab"
 	"io/ioutil"
 	"math"
 	"net"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hub/lib/client/pkg/vocab"
 )
 
 // family to device type. See also: http://owfs.sourceforge.net/simple_family.html

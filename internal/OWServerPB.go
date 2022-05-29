@@ -3,15 +3,14 @@ package internal
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/wostzone/hub/lib/client/pkg/mqttbinding"
+	"github.com/wostzone/wost-go/pkg/exposedthing"
+	"github.com/wostzone/wost-go/pkg/thing"
+	"github.com/wostzone/wost-go/pkg/vocab"
 	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/wostzone/hub/lib/client/pkg/mqttclient"
-	"github.com/wostzone/hub/lib/client/pkg/thing"
-	"github.com/wostzone/hub/lib/client/pkg/vocab"
 	"github.com/wostzone/owserver-pb/internal/eds"
 )
 
@@ -53,18 +52,22 @@ type OWServerPB struct {
 	// Client certificate of this service
 	pluginCert *tls.Certificate
 
-	// Hub MQTT broker address:port to use for publishing TD and events
-	mqttHostPort string
+	// Hub MQTT broker address and port to use for publishing TD and events
+	mqttAddress string
+	mqttPort    int
 
 	// Hub MQTT client instance
-	hubClient *mqttclient.MqttClient
+	//hubClient *mqttclient.MqttClient
 
 	// 1-wire nodes retrieved from the owserver gateway device
 	// map of node/device ID to node info
 	nodeInfo map[string]*eds.OneWireNode
 
+	// Factory for creating exposed things
+	eFactory *exposedthing.ExposedThingFactory
+
 	// Map of node/device ID to exposed thing created for each published node
-	eThings map[string]*mqttbinding.MqttExposedThing
+	eThings map[string]*exposedthing.ExposedThing
 
 	// flag, this service is up and running
 	running bool
@@ -96,7 +99,7 @@ func (pb *OWServerPB) heartbeat() {
 		}
 		valueCountDown--
 		if valueCountDown <= 0 {
-			pb.UpdatePropertyValues()
+			_ = pb.UpdatePropertyValues()
 			valueCountDown = pb.Config.ValueInterval
 		}
 		time.Sleep(time.Second)
@@ -123,18 +126,15 @@ func (pb *OWServerPB) PublishServiceTD() {
 
 	// Include the service properties (attributes and configuration)
 	tdoc.AddProperty(vocab.PropNameGatewayAddress, "Gateway Address", vocab.WoTDataTypeString)
-	eThing := mqttbinding.CreateExposedThing(pb.Config.ClientID, tdoc, pb.hubClient)
+
+	eThing := pb.eFactory.Expose(pb.Config.ClientID, tdoc)
 	pb.eThings[pb.Config.ClientID] = eThing
+
 	eThing.SetPropertyWriteHandler("",
-		func(eThing *mqttbinding.MqttExposedThing, propName string, value mqttbinding.InteractionOutput) error {
-			//
+		func(eThing *exposedthing.ExposedThing, propName string, value *thing.InteractionOutput) error {
+			// TODO: add handle configuration changes (once there are any)
 			return nil
 		})
-	err := eThing.Expose()
-	//eThing.EmitPropertyChange(PropNameAddress, pb.edsAPI.)
-	if err != nil {
-		logrus.Errorf("PublishServiceTD: Error publishing service TD: %s", err)
-	}
 }
 
 //// PublishTDs publishes all the TD of Things
@@ -160,16 +160,21 @@ func (pb *OWServerPB) PublishServiceTD() {
 func (pb *OWServerPB) Start() error {
 	var err error
 
-	// Connect using the MQTT protocol
+	// connect using the MQTT protocol
 	// Todo consideration: move transport protocol into ExposedThing factory
-	pb.hubClient = mqttclient.NewMqttClient(pb.Config.ClientID, pb.caCert, 0)
-	err = pb.hubClient.ConnectWithClientCert(pb.mqttHostPort, pb.pluginCert)
+	//pb.hubClient = mqttclient.NewMqttClient(pb.Config.ClientID, pb.caCert, 0)
+	//err = pb.hubClient.ConnectWithClientCert(pb.mqttHostPort, pb.pluginCert)
+	//if err != nil {
+	//	logrus.Errorf("Protocol Binding for OWServer startup failed")
+	//	return err
+	//}
+	//if pb.Config.PrettyJSON {
+	//	pb.hubClient.SetPrettyPrint(true)
+	//}
+	err = pb.eFactory.Connect(pb.mqttAddress, pb.mqttPort)
 	if err != nil {
-		logrus.Errorf("Protocol Binding for OWServer startup failed")
+		logrus.Errorf("Exposed Thing factory connection failed")
 		return err
-	}
-	if pb.Config.PrettyJSON {
-		pb.hubClient.SetPrettyPrint(true)
 	}
 
 	// Publish the OWServer service as a Thing
@@ -194,22 +199,24 @@ func (pb *OWServerPB) Stop() {
 		// FIXME, wait until discovery has completed if running
 		time.Sleep(time.Second)
 
-		pb.hubClient.Close()
+		pb.eFactory.Disconnect()
 	}
 }
 
 // NewOWServerPB creates a new OWServer Protocol Binding service with the provided configuration
-func NewOWServerPB(config OWServerPBConfig, mqttHostPort string,
+func NewOWServerPB(config OWServerPBConfig, mqttAddress string, mqttPort int,
 	caCert *x509.Certificate, pluginCert *tls.Certificate) *OWServerPB {
 
 	// these are from hub configuration
 	pb := &OWServerPB{
-		mqttHostPort: mqttHostPort,
-		caCert:       caCert,
-		pluginCert:   pluginCert,
-		nodeInfo:     make(map[string]*eds.OneWireNode),
-		eThings:      make(map[string]*mqttbinding.MqttExposedThing),
-		running:      false,
+		mqttAddress: mqttAddress,
+		mqttPort:    mqttPort,
+		caCert:      caCert,
+		pluginCert:  pluginCert,
+		nodeInfo:    make(map[string]*eds.OneWireNode),
+		eThings:     make(map[string]*exposedthing.ExposedThing),
+		eFactory:    exposedthing.CreateExposedThingFactory(config.ClientID, pluginCert, caCert),
+		running:     false,
 	}
 	pb.Config = config
 	// ensure valid defaults

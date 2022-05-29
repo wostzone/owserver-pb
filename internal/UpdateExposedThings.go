@@ -3,7 +3,6 @@ package internal
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hub/lib/client/pkg/mqttbinding"
 	"github.com/wostzone/owserver-pb/internal/eds"
 )
 
@@ -38,12 +37,11 @@ func (pb *OWServerPB) UpdateExposedThingFromNode(node *eds.OneWireNode) {
 	//eThing, found := pb.eThings[node.NodeID]
 	//if !found {
 	tdoc := pb.CreateTDFromNode(node)
-	eThing := mqttbinding.CreateExposedThing(node.NodeID, tdoc, pb.hubClient)
+	eThing := pb.eFactory.Expose(node.NodeID, tdoc)
 	eThing.SetPropertyWriteHandler("", pb.HandleConfigRequest)
 	eThing.SetActionHandler("", pb.HandleActionRequest)
 
 	pb.eThings[node.NodeID] = eThing
-	_ = eThing.Expose()
 	//} else {
 	//	// Node metadata doesn't change
 	//	_ = eThing.Expose()

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hub/lib/client/pkg/vocab"
+	"github.com/wostzone/wost-go/pkg/vocab"
 )
 
 // PollValues obtains thing property values of each Thing and converts the EDS property
@@ -41,7 +41,7 @@ func (pb *OWServerPB) PublishValues(thingValues map[string](map[string]interface
 		eThing, found := pb.eThings[deviceID]
 		if found {
 			// Publish property values that have changed
-			err := eThing.EmitPropertyChanges(propValues, true)
+			err := eThing.EmitPropertiesChange(propValues, true)
 			if err != nil {
 				return err
 			}

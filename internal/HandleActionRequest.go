@@ -4,17 +4,18 @@ package internal
 import (
 	"errors"
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/hub/lib/client/pkg/mqttbinding"
 	"github.com/wostzone/owserver-pb/internal/eds"
+	"github.com/wostzone/wost-go/pkg/exposedthing"
+	"github.com/wostzone/wost-go/pkg/thing"
 	"time"
 )
 
 // HandleActionRequest handles requests to activate inputs
 // Not supported
 func (pb *OWServerPB) HandleActionRequest(
-	eThing *mqttbinding.MqttExposedThing,
+	eThing *exposedthing.ExposedThing,
 	actionName string,
-	io mqttbinding.InteractionOutput) error {
+	io *thing.InteractionOutput) error {
 
 	logrus.Infof("HandleActionRequest for Thing %s. Action=%s Value=%s",
 		eThing.GetThingDescription().GetID(), actionName, io.ValueAsString())
