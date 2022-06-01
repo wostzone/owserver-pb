@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/wostzone/owserver-pb/internal/eds"
 )
 
@@ -13,7 +14,7 @@ import (
 const edsAddress = ""
 
 // simulation file for testing without OWServer gateway
-const owserverSimulation = "../../test/owserver-details.xml"
+const owserverSimulation = "../../testdata/owserver-details.xml"
 
 func TestDiscover(t *testing.T) {
 	edsAPI := eds.NewEdsAPI("", "", "")
@@ -68,7 +69,7 @@ func TestReadEdsFromInvalidAddress(t *testing.T) {
 func TestParseNodeFile(t *testing.T) {
 	// remove cached nodes first
 	os.Remove("../../test/onewire-nodes.json")
-	edsAddress := "file://../../test/owserver-details.xml"
+	edsAddress := "file://" + owserverSimulation
 	edsAPI := eds.NewEdsAPI(edsAddress, "", "")
 
 	rootNode, err := edsAPI.ReadEds()

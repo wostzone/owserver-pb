@@ -3,11 +3,12 @@ package internal
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"sync"
+	"time"
+
 	"github.com/wostzone/wost-go/pkg/exposedthing"
 	"github.com/wostzone/wost-go/pkg/thing"
 	"github.com/wostzone/wost-go/pkg/vocab"
-	"sync"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -128,7 +129,9 @@ func (pb *OWServerPB) PublishServiceTD() {
 	tdoc.AddProperty(vocab.PropNameGatewayAddress, "Gateway Address", vocab.WoTDataTypeString)
 
 	eThing := pb.eFactory.Expose(pb.Config.ClientID, tdoc)
+	pb.mu.Lock()
 	pb.eThings[pb.Config.ClientID] = eThing
+	pb.mu.Unlock()
 
 	eThing.SetPropertyWriteHandler("",
 		func(eThing *exposedthing.ExposedThing, propName string, value *thing.InteractionOutput) error {

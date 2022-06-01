@@ -2,14 +2,20 @@ package internal
 
 import (
 	"fmt"
+
 	"github.com/sirupsen/logrus"
+
 	"github.com/wostzone/owserver-pb/internal/eds"
 )
 
 // PollProperties polls the OWServer hub and updates ExposedThing properties if needed
 func (pb *OWServerPB) PollProperties() (err error) {
 
-	if pb.edsAPI == nil || !pb.running {
+	pb.mu.Lock()
+	isRunning := pb.running
+	pb.mu.Unlock()
+
+	if pb.edsAPI == nil || !isRunning {
 		err := fmt.Errorf("EDS API not initialized")
 		logrus.Error(err)
 		return err
@@ -40,8 +46,9 @@ func (pb *OWServerPB) UpdateExposedThingFromNode(node *eds.OneWireNode) {
 	eThing := pb.eFactory.Expose(node.NodeID, tdoc)
 	eThing.SetPropertyWriteHandler("", pb.HandleConfigRequest)
 	eThing.SetActionHandler("", pb.HandleActionRequest)
-
+	pb.mu.Lock()
 	pb.eThings[node.NodeID] = eThing
+	pb.mu.Unlock()
 	//} else {
 	//	// Node metadata doesn't change
 	//	_ = eThing.Expose()

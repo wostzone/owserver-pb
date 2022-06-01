@@ -3,7 +3,9 @@ package internal
 import (
 	"errors"
 	"fmt"
+
 	"github.com/sirupsen/logrus"
+
 	"github.com/wostzone/wost-go/pkg/vocab"
 )
 
@@ -38,7 +40,9 @@ func (pb *OWServerPB) PublishValues(thingValues map[string](map[string]interface
 	}
 	logrus.Infof("OWServerPB.PublishValues for %d things", len(thingValues))
 	for deviceID, propValues := range thingValues {
+		pb.mu.Lock()
 		eThing, found := pb.eThings[deviceID]
+		pb.mu.Unlock()
 		if found {
 			// Publish property values that have changed
 			err := eThing.EmitPropertiesChange(propValues, true)
