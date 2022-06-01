@@ -4,7 +4,6 @@ package eds
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/wostzone/wost-go/pkg/vocab"
 	"io/ioutil"
 	"math"
 	"net"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wostzone/wost-go/pkg/vocab"
 
 	"github.com/sirupsen/logrus"
 )
@@ -148,19 +149,17 @@ func LookupEdsName(name string) string {
 // Returns the address or an error if not found
 func (edsAPI *EdsAPI) Discover() (addr string, err error) {
 	logrus.Infof("Starting discovery")
+	var addr2 *net.UDPAddr
 	// listen
 	pc, err := net.ListenPacket("udp4", ":30303")
-	if err != nil {
-		return "", err
-	}
-	defer pc.Close()
+	if err == nil {
+		defer pc.Close()
 
-	addr2, err := net.ResolveUDPAddr("udp4", "255.255.255.255:30303")
-	if err != nil {
-		return "", err
+		addr2, err = net.ResolveUDPAddr("udp4", "255.255.255.255:30303")
 	}
-
-	_, err = pc.WriteTo([]byte("D"), addr2)
+	if err == nil {
+		_, err = pc.WriteTo([]byte("D"), addr2)
+	}
 	if err != nil {
 		return "", err
 	}

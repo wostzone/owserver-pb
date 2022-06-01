@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/wostzone/owserver-pb/internal"
+	"github.com/wostzone/owserver/internal"
 )
 
 //var homeFolder string

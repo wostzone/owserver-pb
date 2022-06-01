@@ -2,11 +2,13 @@
 package internal
 
 import (
+	"time"
+
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/owserver-pb/internal/eds"
+
+	"github.com/wostzone/owserver/internal/eds"
 	"github.com/wostzone/wost-go/pkg/exposedthing"
 	"github.com/wostzone/wost-go/pkg/thing"
-	"time"
 )
 
 // HandleConfigRequest handles requests to update a Thing's configuration

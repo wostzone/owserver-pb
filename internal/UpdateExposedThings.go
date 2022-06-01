@@ -5,7 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/wostzone/owserver-pb/internal/eds"
+	"github.com/wostzone/owserver/internal/eds"
 )
 
 // PollProperties polls the OWServer hub and updates ExposedThing properties if needed

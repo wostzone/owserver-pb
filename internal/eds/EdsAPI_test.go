@@ -1,13 +1,12 @@
 package eds_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/wostzone/owserver-pb/internal/eds"
+	"github.com/wostzone/owserver/internal/eds"
 )
 
 // Some tests require a living OWServer
@@ -68,7 +67,7 @@ func TestReadEdsFromInvalidAddress(t *testing.T) {
 // Parse the nodes xml file and test for correct results
 func TestParseNodeFile(t *testing.T) {
 	// remove cached nodes first
-	os.Remove("../../test/onewire-nodes.json")
+	//os.Remove("../../test/onewire-nodes.json")
 	edsAddress := "file://" + owserverSimulation
 	edsAPI := eds.NewEdsAPI(edsAddress, "", "")
 
@@ -79,4 +78,23 @@ func TestParseNodeFile(t *testing.T) {
 	// The test file has hub parameters and 3 connected nodes
 	deviceNodes := edsAPI.ParseOneWireNodes(rootNode, 0, true)
 	assert.Lenf(t, deviceNodes, 4, "Expected 4 nodes")
+}
+
+// TestPollValues reads the EDS and extracts property values of each node
+func TestPollValues(t *testing.T) {
+	edsAddress := "file://" + owserverSimulation
+	edsAPI := eds.NewEdsAPI(edsAddress, "", "")
+
+	valueMap, err := edsAPI.PollValues()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, valueMap)
+}
+
+// there is nothing to write to so make it fail
+func TestWriteDataFail(t *testing.T) {
+	edsAddress := "file://" + owserverSimulation
+	edsAPI := eds.NewEdsAPI(edsAddress, "", "")
+
+	err := edsAPI.WriteData("badRomID", "temp", "")
+	assert.Error(t, err)
 }

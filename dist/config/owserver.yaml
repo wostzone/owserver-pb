@@ -16,6 +16,3 @@
 # Polling is used to query the owserver for updated values.
 # This sets the polling Interval to retrieve updates to property values, default is 60
 #valueInterval: 60
-
-# prettyJSON formats JSON messages to be more readable. For testing.
-#prettyJSON: false

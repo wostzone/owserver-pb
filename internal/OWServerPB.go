@@ -12,16 +12,16 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/wostzone/owserver-pb/internal/eds"
+	"github.com/wostzone/owserver/internal/eds"
 )
 
 // PluginID is the default ID of this service. Used to name the configuration file
 // and as the publisher ID portion of the Thing ID (zoneID:publisherID:deviceID:deviceType)
-const PluginID = "owserver-pb"
+const PluginID = "owserver"
 
 // OWServerPBConfig contains the plugin configuration
 type OWServerPBConfig struct {
-	// The Thing publisher-id, default is the pluginID
+	// The service instance ID, default is the pluginID
 	// Must be unique on the hub. Recommended is to add a '-1' in case of multiple instances.
 	ClientID string `yaml:"clientID"`
 	// OWServer address. Default is auto-discover using DNS-SD
@@ -163,17 +163,6 @@ func (pb *OWServerPB) PublishServiceTD() {
 func (pb *OWServerPB) Start() error {
 	var err error
 
-	// connect using the MQTT protocol
-	// Todo consideration: move transport protocol into ExposedThing factory
-	//pb.hubClient = mqttclient.NewMqttClient(pb.Config.ClientID, pb.caCert, 0)
-	//err = pb.hubClient.ConnectWithClientCert(pb.mqttHostPort, pb.pluginCert)
-	//if err != nil {
-	//	logrus.Errorf("Protocol Binding for OWServer startup failed")
-	//	return err
-	//}
-	//if pb.Config.PrettyJSON {
-	//	pb.hubClient.SetPrettyPrint(true)
-	//}
 	err = pb.eFactory.Connect(pb.mqttAddress, pb.mqttPort)
 	if err != nil {
 		logrus.Errorf("Exposed Thing factory connection failed")

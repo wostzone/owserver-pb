@@ -3,11 +3,13 @@ package internal
 
 import (
 	"errors"
+	"time"
+
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/owserver-pb/internal/eds"
+
+	"github.com/wostzone/owserver/internal/eds"
 	"github.com/wostzone/wost-go/pkg/exposedthing"
 	"github.com/wostzone/wost-go/pkg/thing"
-	"time"
 )
 
 // HandleActionRequest handles requests to activate inputs

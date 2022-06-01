@@ -1,12 +1,14 @@
 package main
 
 import (
-	"github.com/wostzone/wost-go/pkg/config"
-	"github.com/wostzone/wost-go/pkg/proc"
 	"os"
 
+	"github.com/wostzone/wost-go/pkg/config"
+	"github.com/wostzone/wost-go/pkg/proc"
+
 	"github.com/sirupsen/logrus"
-	"github.com/wostzone/owserver-pb/internal"
+
+	"github.com/wostzone/owserver/internal"
 )
 
 // Main entry to WoST protocol adapter for owserver-v2

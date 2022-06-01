@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"github.com/wostzone/owserver-pb/internal/eds"
+	"github.com/wostzone/owserver/internal/eds"
 	"github.com/wostzone/wost-go/pkg/thing"
 	"github.com/wostzone/wost-go/pkg/vocab"
 )
