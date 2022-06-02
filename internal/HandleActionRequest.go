@@ -19,7 +19,7 @@ func (pb *OWServerPB) HandleActionRequest(
 	actionName string,
 	io *thing.InteractionOutput) error {
 
-	logrus.Infof("HandleActionRequest for Thing %s. Action=%s Value=%s",
+	logrus.Infof("Thing %s. Action=%s Value=%s",
 		eThing.GetThingDescription().GetID(), actionName, io.ValueAsString())
 
 	// If the action name is converted to a standardized vocabulary then convert the name

@@ -15,7 +15,7 @@ import (
 // There are currently no node configurations to update to onewire
 func (pb *OWServerPB) HandleConfigRequest(
 	eThing *exposedthing.ExposedThing, propName string, io *thing.InteractionOutput) error {
-	logrus.Infof("HandleConfigRequest for Thing %s. propName=%s", eThing.GetThingDescription().GetID(), propName)
+	logrus.Infof("Thing %s. propName=%s", eThing.GetThingDescription().GetID(), propName)
 	// for now accept all configuration
 
 	// If the property name is converted to a standardized vocabulary then convert the name
@@ -30,7 +30,7 @@ func (pb *OWServerPB) HandleConfigRequest(
 		time.Sleep(time.Second * 2)
 		err = pb.UpdatePropertyValues()
 	} else {
-		logrus.Errorf("HandleConfigRequest results in error: %s", err)
+		logrus.Error(err)
 	}
 	return err
 }

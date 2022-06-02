@@ -140,7 +140,7 @@ func TestPollTDs(t *testing.T) {
 	err = svc.Start()
 	assert.NoError(t, err)
 
-	err = svc.PollProperties()
+	err = svc.UpdateExposedThings()
 	assert.NoError(t, err)
 	//err = svc.PublishTDs(tds)
 	//assert.NoError(t, err)
@@ -194,9 +194,7 @@ func TestPollValuesNotInitialized(t *testing.T) {
 
 	svc := internal.NewOWServerPB(owsConfig,
 		testenv.ServerAddress, testenv.MqttPortCert, testCerts.CaCert, testCerts.PluginCert)
-	_, err := svc.PollValues()
-	require.Error(t, err)
-	err = svc.PollProperties()
+	_, err := svc.PollNodeValues()
 	require.Error(t, err)
 }
 
@@ -222,7 +220,7 @@ func TestPollInvalidEDSAddress(t *testing.T) {
 	err := svc.Start()
 	assert.NoError(t, err)
 
-	err = svc.PollProperties()
+	_, err = svc.PollNodeValues()
 	assert.Error(t, err)
 	svc.Stop()
 
@@ -249,9 +247,9 @@ func TestPublishServiceTDBadAddress(t *testing.T) {
 	svc.Config.PublishTD = true
 	err := svc.Start()
 	assert.Error(t, err)
-	values, err := svc.PollValues()
+	values, err := svc.PollNodeValues()
 	assert.Error(t, err)
-	err = svc.PublishValues(values)
+	err = svc.PublishValues(values, true)
 	assert.Error(t, err)
 	svc.Stop()
 

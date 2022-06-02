@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/wostzone/wost-go/pkg/config"
+	"github.com/wostzone/wost-go/pkg/logging"
 	"github.com/wostzone/wost-go/pkg/proc"
 
 	"github.com/sirupsen/logrus"
@@ -16,6 +17,7 @@ import (
 func main() {
 	serviceConfig := internal.OWServerPBConfig{}
 	hubConfig, err := config.LoadAllConfig(os.Args, "", internal.PluginID, &serviceConfig)
+	logging.SetLogging(hubConfig.Loglevel, hubConfig.LogFile)
 	if err != nil {
 		logrus.Errorf("%s: Failed to configure: %s", internal.PluginID, err)
 		os.Exit(1)

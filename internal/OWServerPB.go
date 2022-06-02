@@ -6,11 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wostzone/wost-go/pkg/exposedthing"
-	"github.com/wostzone/wost-go/pkg/thing"
-	"github.com/wostzone/wost-go/pkg/vocab"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/wostzone/wost-go/pkg/exposedthing"
 
 	"github.com/wostzone/owserver/internal/eds"
 )
@@ -70,6 +68,9 @@ type OWServerPB struct {
 	// Map of node/device ID to exposed thing created for each published node
 	eThings map[string]*exposedthing.ExposedThing
 
+	// exposed thing of the service itself. nil if disabled
+	serviceEThing *exposedthing.ExposedThing
+
 	// flag, this service is up and running
 	running bool
 	mu      sync.Mutex
@@ -77,80 +78,6 @@ type OWServerPB struct {
 	// the zone of the plugin publications, default is local
 	zone string
 }
-
-// heartbeat polls the EDS server every X seconds and updates the Exposed Things
-func (pb *OWServerPB) heartbeat() {
-	logrus.Infof("OWServerPB.heartbeat started. TDinterval=%d seconds, Value interval is %d seconds",
-		pb.Config.TDInterval, pb.Config.ValueInterval)
-	var tdCountDown = 0
-	var valueCountDown = 0
-	for {
-		pb.mu.Lock()
-		isRunning := pb.running
-		pb.mu.Unlock()
-		if !isRunning {
-			break
-		}
-
-		tdCountDown--
-		if tdCountDown <= 0 {
-			// create ExposedThing's as they are discovered
-			_ = pb.PollProperties()
-			tdCountDown = pb.Config.TDInterval
-		}
-		valueCountDown--
-		if valueCountDown <= 0 {
-			_ = pb.UpdatePropertyValues()
-			valueCountDown = pb.Config.ValueInterval
-		}
-		time.Sleep(time.Second)
-	}
-}
-
-// PublishServiceTD publishes the Thing Description document of the service itself
-// This is only published if 'publishTD' is set in the configuration
-// The publisher of this TD is the hub with the deviceID the plugin-ID
-// TD attributes of this service includes are:
-//    'address' - gateway address
-func (pb *OWServerPB) PublishServiceTD() {
-	if !pb.Config.PublishTD {
-		return
-	}
-	deviceType := vocab.DeviceTypeService
-	thingID := thing.CreatePublisherID(pb.zone, pb.Config.ClientID, pb.Config.ClientID, deviceType)
-	logrus.Infof("Publishing this service TD %s", thingID)
-
-	// Create the TD document for this protocol binding
-	tdoc := thing.CreateTD(thingID, "OWServer Service", deviceType)
-	tdoc.UpdateTitleDescription("EDS OWServer-V2 Protocol binding",
-		"This service publishes information on The EDS OWServer 1-wire gateway and its connected sensors")
-
-	// Include the service properties (attributes and configuration)
-	tdoc.AddProperty(vocab.PropNameGatewayAddress, "Gateway Address", vocab.WoTDataTypeString)
-
-	eThing := pb.eFactory.Expose(pb.Config.ClientID, tdoc)
-	pb.mu.Lock()
-	pb.eThings[pb.Config.ClientID] = eThing
-	pb.mu.Unlock()
-
-	eThing.SetPropertyWriteHandler("",
-		func(eThing *exposedthing.ExposedThing, propName string, value *thing.InteractionOutput) error {
-			// TODO: add handle configuration changes (once there are any)
-			return nil
-		})
-}
-
-//// PublishTDs publishes all the TD of Things
-//func (pb *OWServerPB) PublishTDs(tds map[string]thing.ThingTD) error {
-//	var err error
-//	for thingID, td := range tds {
-//		err = pb.hubClient.PublishTD(thingID, td)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//	return nil
-//}
 
 // Start the OWServer protocol binding
 // This:
@@ -170,11 +97,13 @@ func (pb *OWServerPB) Start() error {
 	}
 
 	// Publish the OWServer service as a Thing
-	pb.PublishServiceTD()
+	if pb.Config.PublishTD {
+		pb.serviceEThing = pb.CreateExposedThingForService()
+	}
 
 	// Periodic polling of the OWServer
 	pb.running = true
-	go pb.heartbeat()
+	go pb.heartBeat()
 
 	logrus.Infof("Service OWServer startup completed")
 	return nil

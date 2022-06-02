@@ -33,12 +33,14 @@ var AttrVocab = map[string]string{
 	"DeviceName": vocab.PropNameName,
 	"HostName":   vocab.PropNameHostname,
 	// Exclude/ignore the following attributes as they are chatty and not useful
-	"DateTime":     "",
-	"RawData":      "",
-	"Counter1":     "",
-	"Counter2":     "",
-	"PollCount":    "",
-	"PrimaryValue": "",
+	"BarometricPressureHg": "",
+	"Counter1":             "",
+	"Counter2":             "",
+	"DateTime":             "",
+	"Looptime":             "",
+	"PollCount":            "",
+	"PrimaryValue":         "",
+	"RawData":              "",
 }
 
 // SensorTypeVocab maps OWServer sensor names to IoT vocabulary
@@ -48,22 +50,17 @@ var SensorTypeVocab = map[string]struct {
 	decimals int // number of decimals accuracy for this value
 }{
 	// "BarometricPressureHg": vocab.PropNameAtmosphericPressure, // unit Hg
-	"BarometricPressureMb": {name: vocab.PropNameAtmosphericPressure,
-		dataType: vocab.WoTDataTypeNumber, decimals: 0}, // unit Mb
-	"DewPoint": {name: vocab.PropNameDewpoint,
-		dataType: vocab.WoTDataTypeNumber, decimals: 1},
-	"HeatIndex": {name: vocab.PropNameHeatIndex,
-		dataType: vocab.WoTDataTypeNumber, decimals: 1},
-	"Humidity": {name: vocab.PropNameHumidity,
-		dataType: vocab.WoTDataTypeNumber, decimals: 0},
-	"Humidex": {name: vocab.PropNameHumidex,
-		dataType: vocab.WoTDataTypeNumber, decimals: 1},
-	"Light": {name: vocab.PropNameLuminance,
-		dataType: vocab.WoTDataTypeNumber, decimals: 0},
-	"RelayState": {name: vocab.PropNameRelay,
-		dataType: vocab.WoTDataTypeBool, decimals: 0},
-	"Temperature": {name: vocab.PropNameTemperature,
-		dataType: vocab.WoTDataTypeNumber, decimals: 1},
+	"BarometricPressureMb": {name: vocab.PropNameAtmosphericPressure, dataType: vocab.WoTDataTypeNumber, decimals: 0}, // unit Mb
+	"DewPoint":             {name: vocab.PropNameDewpoint, dataType: vocab.WoTDataTypeNumber, decimals: 1},
+	"HeatIndex":            {name: vocab.PropNameHeatIndex, dataType: vocab.WoTDataTypeNumber, decimals: 1},
+	"Humidity":             {name: vocab.PropNameHumidity, dataType: vocab.WoTDataTypeNumber, decimals: 0},
+	"Humidex":              {name: vocab.PropNameHumidex, dataType: vocab.WoTDataTypeNumber, decimals: 1},
+	"Light":                {name: vocab.PropNameLuminance, dataType: vocab.WoTDataTypeNumber, decimals: 0},
+	"RelayState":           {name: vocab.PropNameRelay, dataType: vocab.WoTDataTypeBool, decimals: 0},
+	"Temperature":          {name: vocab.PropNameTemperature, dataType: vocab.WoTDataTypeNumber, decimals: 1},
+	"VoltageChannel1":      {name: "VoltageChannel1", dataType: vocab.WoTDataTypeNumber, decimals: 1},
+	"VoltageChannel2":      {name: "VoltageChannel2", dataType: vocab.WoTDataTypeNumber, decimals: 1},
+	"VoltageChannel3":      {name: "VoltageChannel3", dataType: vocab.WoTDataTypeNumber, decimals: 1},
 }
 
 // UnitNameVocab maps OWServer unit names to IoT vocabulary
@@ -177,7 +174,7 @@ func (edsAPI *EdsAPI) Discover() (addr string, err error) {
 			switch rxAddr := remoteAddr.(type) {
 			case *net.UDPAddr:
 				addr = rxAddr.IP.String()
-				logrus.Infof("EdsAPI.Discover. Found at %s: %s", addr, buf[:n])
+				logrus.Infof("Found at %s: %s", addr, buf[:n])
 				return addr, nil
 			}
 		}
@@ -211,7 +208,7 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 	if isRootNode {
 		owAttr := OneWireAttr{
 			Name:  vocab.PropNameLatency,
-			Value: fmt.Sprintf("%.3f", latency.Seconds()),
+			Value: fmt.Sprintf("%.2f", latency.Seconds()),
 			Unit:  "sec",
 		}
 		owNode.Attr[owAttr.Name] = owAttr
@@ -368,14 +365,14 @@ func (edsAPI *EdsAPI) WriteData(romID string, variable string, value string) err
 		"?rom=" + romID + "&variable=" + variable + "&value=" + value
 	req, _ := http.NewRequest("GET", writeURL, nil)
 
-	logrus.Infof("EdsAPI.WriteData: URL: %s", writeURL)
+	logrus.Infof("URL: %s", writeURL)
 	req.SetBasicAuth(edsAPI.loginName, edsAPI.password)
 	client := &http.Client{Timeout: time.Second}
 	resp, err := client.Do(req)
 	_ = resp
 
 	if err != nil {
-		logrus.Errorf("EdsAPI.WriteData: Unable to write data to EDS gateway at %s: %v", writeURL, err)
+		logrus.Errorf("Unable to write data to EDS gateway at %s: %v", writeURL, err)
 	}
 	return err
 }
