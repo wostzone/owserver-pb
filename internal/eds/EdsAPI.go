@@ -32,6 +32,7 @@ var AttrVocab = map[string]string{
 	//"DateTime":   vocab.PropNameDateTime,
 	"DeviceName": vocab.PropNameName,
 	"HostName":   vocab.PropNameHostname,
+	"Version":    vocab.PropNameSoftwareVersion,
 	// Exclude/ignore the following attributes as they are chatty and not useful
 	"BarometricPressureHg": "",
 	"Counter1":             "",
@@ -103,7 +104,8 @@ type OneWireAttr struct {
 	Unit     string
 	Writable bool
 	Value    string
-	IsSensor bool // sensors emit events on change
+	IsSensor bool   // sensors emit events on change
+	DataType string // vocab data type, "string", "number", "boolean"
 }
 
 // OneWireNode with info on each node
@@ -207,9 +209,10 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 	// todo: find a better place for this
 	if isRootNode {
 		owAttr := OneWireAttr{
-			Name:  vocab.PropNameLatency,
-			Value: fmt.Sprintf("%.2f", latency.Seconds()),
-			Unit:  "sec",
+			Name:     vocab.PropNameLatency,
+			Value:    fmt.Sprintf("%.2f", latency.Seconds()),
+			Unit:     "sec",
+			DataType: vocab.WoTDataTypeNumber,
 		}
 		owNode.Attr[owAttr.Name] = owAttr
 	}
@@ -222,10 +225,12 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 			attrName := node.XMLName.Local
 			sensorInfo, isSensor := SensorTypeVocab[attrName]
 			decimals := -1 // -1 means no conversion
+			dataType := vocab.WoTDataTypeString
 			if isSensor {
 				// this is a known sensor type. (writable sensors are actuators)
 				attrName = sensorInfo.name
 				decimals = sensorInfo.decimals
+				dataType = sensorInfo.dataType
 			} else {
 				// this is an attribute. writable attributes are configuration
 				attrName, _ = applyVocabulary(attrName, AttrVocab)
@@ -247,6 +252,7 @@ func (edsAPI *EdsAPI) ParseOneWireNodes(xmlNode *XMLNode, latency time.Duration,
 					Unit:     unit,
 					IsSensor: isSensor,
 					Writable: writable,
+					DataType: dataType,
 				}
 				owNode.Attr[owAttr.Name] = owAttr
 				// Family is used to determine device type, default is gateway

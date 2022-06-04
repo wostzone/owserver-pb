@@ -25,10 +25,10 @@ func (pb *OWServerPB) HandleConfigRequest(
 	err := pb.edsAPI.WriteData(eThing.DeviceID, edsName, io.ValueAsString())
 	if err == nil {
 		time.Sleep(time.Second)
-		_ = pb.UpdatePropertyValues()
+		err = pb.UpdatePropertyValues(true)
 		// The EDS is slow, retry in case it was missed
 		time.Sleep(time.Second * 2)
-		err = pb.UpdatePropertyValues()
+		err = pb.UpdatePropertyValues(true)
 	} else {
 		logrus.Error(err)
 	}

@@ -22,14 +22,18 @@ func (pb *OWServerPB) heartBeat() {
 
 		tdCountDown--
 		if tdCountDown <= 0 {
+			// Every TDInterval update the TD's and submit all properties
 			// create ExposedThing's as they are discovered
 			_ = pb.UpdateExposedThings()
+			_ = pb.UpdatePropertyValues(false)
 			tdCountDown = pb.Config.TDInterval
-		}
-		valueCountDown--
-		if valueCountDown <= 0 {
-			_ = pb.UpdatePropertyValues()
 			valueCountDown = pb.Config.ValueInterval
+		} else {
+			valueCountDown--
+			if valueCountDown <= 0 {
+				_ = pb.UpdatePropertyValues(true)
+				valueCountDown = pb.Config.ValueInterval
+			}
 		}
 		time.Sleep(time.Second)
 	}

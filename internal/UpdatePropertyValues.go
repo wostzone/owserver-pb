@@ -66,10 +66,11 @@ func (pb *OWServerPB) PublishValues(thingValues map[string](map[string]interface
 
 // UpdatePropertyValues polls the OWServer hub for Thing property values and pass updates
 // to the Exposed Thing.
-func (pb *OWServerPB) UpdatePropertyValues() error {
+//  onlyChanges only submit changed values
+func (pb *OWServerPB) UpdatePropertyValues(onlyChanges bool) error {
 	nodeValueMap, err := pb.PollNodeValues()
 	if err == nil {
-		err = pb.PublishValues(nodeValueMap, true)
+		err = pb.PublishValues(nodeValueMap, onlyChanges)
 	}
 	return err
 }

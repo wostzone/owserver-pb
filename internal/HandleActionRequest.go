@@ -3,6 +3,7 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -10,6 +11,7 @@ import (
 	"github.com/wostzone/owserver/internal/eds"
 	"github.com/wostzone/wost-go/pkg/exposedthing"
 	"github.com/wostzone/wost-go/pkg/thing"
+	"github.com/wostzone/wost-go/pkg/vocab"
 )
 
 // HandleActionRequest handles requests to activate inputs
@@ -33,13 +35,20 @@ func (pb *OWServerPB) HandleActionRequest(
 	// lookup the action name used by the EDS
 	edsName := eds.LookupEdsName(actionName)
 
-	err := pb.edsAPI.WriteData(eThing.DeviceID, edsName, io.ValueAsString())
+	// determine the value. Booleans are submitted as integers
+	actionValue := io.ValueAsString()
+	if io.Schema.Type == vocab.WoTDataTypeBool {
+		actionValue = fmt.Sprint(io.ValueAsInt())
+	}
+
+	err := pb.edsAPI.WriteData(eThing.DeviceID, edsName, actionValue)
 	if err == nil {
 		time.Sleep(time.Second)
-		_ = pb.UpdatePropertyValues()
+		err = pb.UpdatePropertyValues(true)
+
 		// The EDS is slow, retry in case it was missed
-		time.Sleep(time.Second * 2)
-		err = pb.UpdatePropertyValues()
+		time.Sleep(time.Second * 4)
+		err = pb.UpdatePropertyValues(true)
 	}
 	return err
 }

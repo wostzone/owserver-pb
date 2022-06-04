@@ -24,30 +24,25 @@ func (pb *OWServerPB) CreateTDFromNode(node *eds.OneWireNode) (tdoc *thing.Thing
 
 	// Map node attribute to Thing properties
 	for attrName, attr := range node.Attr {
-		prop := tdoc.AddProperty(attrName, attr.Name, vocab.WoTDataTypeString)
+		prop := tdoc.AddProperty(attrName, attr.Name, attr.DataType)
 		prop.Unit = attr.Unit
 
+		// sensors are added as both properties and events
 		if attr.IsSensor {
-			prop.AtType = string(vocab.PropertyTypeOutput)
 			// sensors emit events
-			evAff := tdoc.AddEvent(attrName, attrName, vocab.WoTDataTypeString)
-			evAff.Data.Type = vocab.WoTDataTypeString
+			evAff := tdoc.AddEvent(attrName, attrName, attr.DataType)
 			evAff.Data.Unit = prop.Unit
 
 			// writable sensors are actuators and can be triggered with actions
 			if attr.Writable {
-				actionAff := tdoc.AddAction(attrName, attrName, vocab.WoTDataTypeString)
-				// what input type is expected?
-				actionAff.Input.Type = vocab.WoTDataTypeString
+				actionAff := tdoc.AddAction(attrName, attrName, attr.DataType)
 				actionAff.Input.Unit = prop.Unit
 			}
 		} else {
 			// non-sensors are attributes. Writable attributes are configuration.
 			if attr.Writable {
-				prop.AtType = string(vocab.PropertyTypeConfig)
 				prop.ReadOnly = false
 			} else {
-				prop.AtType = string(vocab.PropertyTypeAttr)
 				prop.ReadOnly = true
 			}
 		}
